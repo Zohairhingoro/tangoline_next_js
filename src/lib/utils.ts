@@ -1,3 +1,5 @@
+import type { CartItem, StoreProduct } from "@/types";
+
 export const CURRENCY_SYMBOL = "₨";
 export const PLACEHOLDER_IMAGE = "/images/product-placeholder.svg";
 
@@ -52,4 +54,19 @@ export function generateOrderNumber(): string {
 
 export function truncate(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
+}
+
+/** Convert a catalog product into the serialized cart item used by the client. */
+export function toCartItem(product: StoreProduct, qty = 1): CartItem {
+  return {
+    id: product.id,
+    title: product.name,
+    price: formatPrice(product.price),
+    rawPrice: product.price,
+    image: product.image,
+    brand: product.brand,
+    desc: product.shortDescription || product.description,
+    docx: product.docxUrl,
+    qty,
+  };
 }

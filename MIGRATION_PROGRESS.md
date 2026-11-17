@@ -9,12 +9,12 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 
 ## Current Status
 
-- **Current phase:** Phase 3 — Storefront UI ✅ complete → starting Phase 4
-- **Latest commit:** `33c973b` — `feat: build faithful storefront UI and routes`
-- **Testing status:** `npm run lint`, `npx tsc --noEmit`, `prisma validate`,
-  `prisma generate`, and `npm run build` all pass. No live MySQL server in the build
-  environment, so DB-backed routes are dynamic and will be exercised once `DATABASE_URL`
-  points at a real database.
+- **Current phase:** Phase 4 — Storefront Functionality ✅ complete → starting Phase 5
+- **Latest commit:** `f1a8d31` — `feat: implement storefront cart, checkout and contact flows`
+- **Testing status:** `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
+  `npx prisma validate` all pass (Prisma config requires a `DATABASE_URL` to be present,
+  but no live MySQL connection is needed for validation/build). DB-backed flows will be
+  exercised end-to-end once `DATABASE_URL` points at a real database.
 
 ---
 
@@ -56,15 +56,22 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 - [x] `lint`, `tsc`, and `build` pass; all storefront routes are dynamic
 - [x] Commit and push (`33c973b`)
 
-## Phase 4 — Storefront Functionality ⬜
+## Phase 4 — Storefront Functionality ✅
 
-- [x] Search and brand filtering
-- [x] Shopping cart client state (localStorage) — DB sync still pending
-- [ ] Cart → `cart_items` DB sync (`/api/cart`)
-- [ ] Checkout with geolocation-assisted address fill and `TNG-XXXXX` order numbers
-- [ ] DOCX download tracking (`downloads` table)
-- [ ] Contact form (`/api/contact`)
-- [ ] Commit and push
+- [x] Search and brand/type filtering (server-side queries, original client filter classes)
+- [x] Shopping cart client state (`tangoline_cart` localStorage) with server sync
+- [x] `GET/POST /api/cart` with `get/add/update/remove/clear/sync` actions, cart-session
+      cookie, same-origin checks, and zod validation
+- [x] Cart page (`/cart`) reproducing the original table, quantity controls, and summary
+- [x] About Us page (`/about-us`)
+- [x] Checkout (`/checkout`) guarded by `requireCustomer()` with prefilled shipping fields,
+      payment method selection, and geolocation-assisted address fill
+- [x] Order creation with exact legacy `TNG-<hex><random>` numbers, DB-validated prices,
+      `order_items` snapshots, and cart clearing in one transaction
+- [x] `/api/contact` + contact page storing validated messages in `contact_messages`
+- [x] DOCX download tracking in `downloads` with on-demand generation and `docx_file` update
+- [x] `lint`, `tsc`, `build`, `prisma validate` all pass; every new route is dynamic
+- [x] Commit and push (`f1a8d31`)
 
 ## Phase 5 — Customer System ⬜
 
@@ -102,11 +109,16 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 
 ## Known Issues / Technical Notes
 
-- The original app is a hybrid localStorage + MySQL cart. Phase 3 reproduces the localStorage
-  behaviour; `/api/cart` DB sync is still to be added in Phase 4.
+- The original app is a hybrid localStorage + MySQL cart. The Next.js version keeps
+  localStorage authoritative in the browser and mirrors it into `cart_items` through
+  `/api/cart`. On load, a non-empty DB cart wins (matching the original `cart-action.php`);
+  otherwise the local cart is pushed to the server.
 - Original DOCX files live in `fc/`; they are copied to `storage/fc/`. The new
-  `/api/download/[id]` route serves existing files and generates missing ones on demand;
-  download tracking is still to be added in Phase 4.
+  `/api/download/[id]` route serves existing files, generates missing ones on demand,
+  updates `products.docx_file`, and records a `downloads` row (log failure never blocks).
+- Checkout re-reads every product price from MySQL before creating an order; client-supplied
+  prices are never trusted. Login/register/profile routes arrive in Phase 5, so `/checkout`
+  currently redirects unauthenticated visitors to `/login` (not yet implemented).
 - `database/database.sql` (original) is preserved at `prisma/legacy/database.sql` for reference.
 - MySQL is not guaranteed to be running in the build environment; database-backed pages will be
   dynamic (no build-time DB access).

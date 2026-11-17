@@ -115,6 +115,13 @@ npm run db:pull       # Introspect the live MySQL schema
 | `/consoles` | `console.php` |
 | `/pc-parts` | `pc-parts.php` |
 | `/product/[slug]` | `product-details.php` |
+| `/cart` | `cart.php` |
+| `/checkout` | `checkout.php` |
+| `/about-us` | `about-us.php` |
+| `/contact-us` | `contact-us.php` |
+| `/api/cart` | `cart-action.php` |
+| `/api/checkout` | `checkout.php` (order creation) |
+| `/api/contact` | `contact-us.php` (message storage) |
 | `/api/download/[id]` | `download-details.php` |
 
 All storefront routes are server-rendered on demand so the build never needs a live MySQL
@@ -140,6 +147,12 @@ The original application used PHP sessions, a localStorage + MySQL hybrid cart, 
 CSRF tokens, and generated `.docx` specification sheets. Each of these behaviours is being
 reimplemented with equivalent Next.js/TypeScript patterns. Detailed status is tracked in
 [`MIGRATION_PROGRESS.md`](./MIGRATION_PROGRESS.md).
+
+Phase 4 added the transactional checkout flow. Order numbers follow the original
+`TNG-<6 uppercase hex><2 digits>` format, and every line price is re-checked against MySQL
+before an order is written. Cart state is mirrored into `cart_items` via an httpOnly cart-session
+cookie, and all mutating API routes enforce same-origin checks and zod validation.
+Login/register/profile pages are planned for Phase 5.
 
 ---
 

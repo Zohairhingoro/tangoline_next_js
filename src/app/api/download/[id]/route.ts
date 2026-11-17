@@ -1,31 +1,34 @@
 import { readFile } from "node:fs/promises";
-import { getProductDownloadInfo } from "@/services/product-service";
+import { basename } from "node:path";
+import { NextResponse } from "next/server";
+import { getSession } from "@/lib/auth/session";
+import { getCartIdentity, setCartSessionCookie } from "@/lib/cart";
+import { prisma } from "@/lib/db/prisma";
 import { docxExists, generateProductDocx, resolveDocxPath } from "@/lib/docx";
-import { slugify } from "@/lib/utils";
+import { getProductDownloadInfo } from "@/services/product-service";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: rawId } = await params;
   const id = Number(rawId);
   if (!Number.isInteger(id) || id <= 0) {
-    return new Response("Invalid product id", { status: 400 });
+    return new Response("Invalid product request.", { status: 400 });
   }
 
   const product = await getProductDownloadInfo(id);
   if (!product) {
-    return new Response("Product not found", { status: 404 });
+    return new Response("Product not found.", { status: 404 });
   }
 
-  let filePath = await docxExists(product.docxFile)
-    ? resolveDocxPath(product.docxFile)
-    : null;
+  let docxFile = product.docxFile;
+  let filePath = (await docxExists(docxFile)) ? resolveDocxPath(docxFile) : null;
 
   if (!filePath) {
-    await generateProductDocx({
+    const relativePath = await generateProductDocx({
       id: product.id,
       name: product.name,
       slug: product.slug,
@@ -37,22 +40,76 @@ export async function GET(
       specifications: product.specifications,
       systemRequirements: product.systemRequirements,
     });
-    filePath = resolveDocxPath(`${product.slug || slugify(product.name)}-details.docx`);
+    docxFile = relativePath;
+    try {
+      await prisma.product.update({
+        where: { id: product.id },
+        data: { docxFile: relativePath },
+      });
+    } catch {
+      // Non-critical: serving the freshly generated file still works.
+    }
+    filePath = resolveDocxPath(relativePath);
   }
 
   if (!filePath) {
-    return new Response("Unable to prepare document", { status: 500 });
+    return new Response("Product specification file could not be prepared.", { status: 500 });
   }
 
-  const buffer = await readFile(/* turbopackIgnore: true */ filePath);
-  const fileName = `${product.slug || slugify(product.name)}-details.docx`;
+  let buffer: Buffer;
+  try {
+    buffer = await readFile(/* turbopackIgnore: true */ filePath);
+  } catch {
+    return new Response("Product specification file could not be prepared.", { status: 500 });
+  }
 
-  return new Response(new Uint8Array(buffer), {
+  // Match the original download-details.php tracking (log failure never blocks).
+  try {
+    const identity = await getCartIdentity();
+    const user = await getSession();
+    const forwarded = request.headers.get("x-forwarded-for");
+    const ipAddress =
+      forwarded?.split(",")[0]?.trim() ||
+      request.headers.get("x-real-ip") ||
+      "127.0.0.1";
+
+    await prisma.download.create({
+      data: {
+        productId: product.id,
+        userId: user?.role === "customer" ? user.id : null,
+        sessionId: identity.sessionId,
+        ipAddress: ipAddress.slice(0, 45),
+        fileName: basename(filePath),
+      },
+    });
+
+    const response = new NextResponse(new Uint8Array(buffer), {
+      headers: {
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "Content-Disposition": `attachment; filename="${product.name
+          .replace(/[^A-Za-z0-9_-]/g, "_")}-Details.docx"`,
+        "Content-Length": String(buffer.length),
+        "Cache-Control": "must-revalidate, post-check=0, pre-check=0",
+        Pragma: "public",
+        "X-Content-Type-Options": "nosniff",
+      },
+    });
+    setCartSessionCookie(response, identity.sessionId);
+    return response;
+  } catch {
+    // Continue with an untracked download if analytics are unavailable.
+  }
+
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type":
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-      "Content-Disposition": `attachment; filename="${fileName}"`,
-      "Cache-Control": "private, no-store",
+      "Content-Disposition": `attachment; filename="${product.name
+        .replace(/[^A-Za-z0-9_-]/g, "_")}-Details.docx"`,
+      "Content-Length": String(buffer.length),
+      "Cache-Control": "must-revalidate, post-check=0, pre-check=0",
+      Pragma: "public",
       "X-Content-Type-Options": "nosniff",
     },
   });

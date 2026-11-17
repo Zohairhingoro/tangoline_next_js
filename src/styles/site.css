@@ -938,3 +938,146 @@ body {
   box-shadow: 0 4px 14px rgba(229, 9, 20, 0.45);
   transform: translateX(4px);
 }
+
+/* ---------------------------------------------------------------------------
+   Checkout, contact and cart summary surfaces (Phase 4)
+   These match the original dark/red card styling used across the PHP site.
+   --------------------------------------------------------------------------- */
+.checkout-container {
+  padding-top: 10px;
+  padding-bottom: 40px;
+}
+.checkout-card {
+  background: rgba(18, 18, 18, 0.92);
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 20px;
+}
+.checkout-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffffff;
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 20px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #333;
+}
+.checkout-heading .step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #e50914;
+  color: #fff;
+  font-size: 0.95rem;
+}
+.location-btn-wrap {
+  margin-bottom: 16px;
+}
+.location-btn-wrap button {
+  background: transparent;
+  border: 1px dashed #e50914;
+  color: #e50914;
+  border-radius: 6px;
+  padding: 8px 14px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+.location-btn-wrap button:hover {
+  background: rgba(229, 9, 20, 0.12);
+}
+.checkout-card .form-control {
+  background: #111;
+  border: 1px solid #3a3a3a;
+  color: #fff;
+}
+.checkout-card .form-control:focus {
+  background: #151515;
+  border-color: #e50914;
+  box-shadow: 0 0 0 0.2rem rgba(229, 9, 20, 0.2);
+  color: #fff;
+}
+.checkout-card .form-control::placeholder {
+  color: #777;
+}
+.payment-option-card {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  margin-bottom: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: #141414;
+}
+.payment-option-card:hover {
+  border-color: #e50914;
+}
+.payment-option-card.selected {
+  border-color: #e50914;
+  background: rgba(229, 9, 20, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(229, 9, 20, 0.35);
+}
+.payment-option-card input[type="radio"] {
+  accent-color: #e50914;
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+}
+.cursor-pointer {
+  cursor: pointer;
+}
+.order-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #2a2a2a;
+}
+.order-summary-img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  background: #111;
+  border-radius: 6px;
+  padding: 4px;
+}
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.contact-card {
+  max-width: 720px;
+  margin: 0 auto;
+  background: rgba(18, 18, 18, 0.92);
+  border: 1px solid #2a2a2a;
+  border-radius: 10px;
+  padding: 36px;
+}
+.contact-card .form-control {
+  background: #111;
+  border: 1px solid #3a3a3a;
+  color: #fff;
+}
+.contact-card .form-control:focus {
+  background: #151515;
+  border-color: #e50914;
+  box-shadow: 0 0 0 0.2rem rgba(229, 9, 20, 0.2);
+  color: #fff;
+}
+.contact-card .form-control::placeholder {
+  color: #777;
+}
