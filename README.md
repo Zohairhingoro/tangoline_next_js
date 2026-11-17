@@ -139,6 +139,33 @@ All storefront routes are server-rendered on demand so the build never needs a l
 connection. The original `site.css` and Bootstrap 5.0.2 are loaded alongside Tailwind to
 preserve the exact dark/red Quicksand design.
 
+## Implemented Admin Routes
+
+| Next.js route | Original PHP page |
+|---|---|
+| `/admin/login` | `admin/login.php` |
+| `/admin/dashboard` | `admin/dashboard.php` |
+| `/admin/products` | `admin/products/index.php` |
+| `/admin/products/create` | `admin/products/create.php` |
+| `/admin/products/[id]/edit` | `admin/products/edit.php` |
+| `/admin/categories` | `admin/categories/index.php` |
+| `/admin/categories/create` | `admin/categories/create.php` |
+| `/admin/categories/[id]/edit` | `admin/categories/edit.php` |
+| `/admin/orders` | `admin/orders/index.php` |
+| `/admin/orders/[id]` | `admin/orders/view.php` |
+| `/admin/users` | `admin/users/index.php` |
+| `/admin/users/[id]` | `admin/users/view.php` |
+| `/admin/users/[id]/edit` | `admin/users/edit.php` |
+| `/admin/users/activity` | `admin/users/activity.php` |
+| `/admin/analytics/visitors` | `admin/analytics/visitors.php` |
+| `/admin/analytics/downloads` | `admin/analytics/downloads.php` |
+| `/admin/messages` | `admin/messages/index.php` |
+
+Admin mutations go through same-origin-protected Route Handlers under `/api/admin/*`.
+Admin pages share the standalone `admin.css` theme and are guarded server-side by the
+`(shell)` route group. Product uploads are written to `public/uploads/products/` with
+signature validation, and create/edit regenerate the product's `.docx` specification file.
+
 ---
 
 ## Default Credentials (from the original application)
@@ -168,8 +195,14 @@ Phase 5 added the customer system: login, registration, logout, profile editing,
 changes, and order history. Passwords use bcrypt (legacy `$2y$` hashes are verified by
 normalising the prefix), sessions are signed httpOnly cookies, and guarded pages redirect
 unauthenticated visitors back after login via a sanitised `redirect` parameter. The original
-animated auth backdrop and error wording are preserved. Admin panel and analytics arrive in
-the remaining phases.
+animated auth backdrop and error wording are preserved.
+
+Phase 6 delivered the full admin panel: signed admin sessions with guarded shell routes,
+the KPI dashboard and traffic chart, product/category CRUD with secure image uploads and
+automatic DOCX generation, order status processing, user management and login-activity log,
+visitor/download analytics with Recharts, and the contact-message inbox. Flash messages,
+badge colours, date formats, filters, and original confirmation wording are preserved;
+only the underlying transport changed from PHP form POSTs to JSON/multipart Route Handlers.
 
 ---
 

@@ -9,8 +9,8 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 
 ## Current Status
 
-- **Current phase:** Phase 5 — Customer System ✅ complete → starting Phase 6
-- **Latest commit:** `4aac872` — `feat: implement customer login, registration and profile system`
+- **Current phase:** Phase 6 — Admin Panel ✅ complete → starting Phase 7 (Final Testing)
+- **Latest commit:** `3bb6db8` — `feat: implement admin panel with CRUD, analytics, and messages`
 - **Testing status:** `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
   `npx prisma validate` all pass (Prisma config requires a `DATABASE_URL` to be present,
   but no live MySQL connection is needed for validation/build). DB-backed flows will be
@@ -93,23 +93,37 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 - [x] `lint`, `tsc`, `build`, `prisma validate` all pass
 - [x] Commit and push (`4aac872`)
 
-## Phase 6 — Admin Panel ⬜
+## Phase 6 — Admin Panel ✅
 
-- [ ] Admin authentication and route protection
-- [ ] Dashboard with KPI cards and Chart.js/Recharts visitor chart
-- [ ] Product CRUD + image uploads + auto DOCX generation
-- [ ] Category CRUD with product-count protection
-- [ ] Order management / status updates
-- [ ] User management + auth activity log
-- [ ] Commit and push
+- [x] Standalone `/admin/login` with signed admin session cookie, `/api/admin/auth/login`
+      and `/api/admin/auth/logout`, plus server-side `(shell)` route protection
+- [x] Exact admin shell (navbar, sidebar, footer, Quicksand theme in `admin.css`) with
+      query-parameter flash messages rendered above each page
+- [x] Dashboard with all six KPI cards, 7-day Recharts traffic area chart, visitor
+      breakdown, top downloads/views tables, and recent orders/login activity
+- [x] Product CRUD with search/category filters, secure image uploads to
+      `public/uploads/products/`, slug collision suffixes, DOCX regeneration and cleanup
+- [x] Category CRUD with original validation wording and product-count delete protection
+- [x] Order list/status updates with exact badges, date formats, payment display, hardcoded
+      `Shipping Fee: FREE`, and stored price snapshots
+- [x] User list/profile/edit with status toggling, deletion, and `Authentication Activity Log`
+      (including the original `customer` filter quirk)
+- [x] Visitor analytics with date range, mixed red-bar/cyan-line chart, per-page stats and
+      100-row visit log; download analytics with fixed 14-day cyan chart and 200-row log
+- [x] Contact messages inbox with unread red borders, read/unread filters and mailto replies
+- [x] `lint`, `tsc`, `build`, `prisma validate` all pass; same-origin guards on every mutation
+- [x] Commit and push (`3bb6db8`)
 
-## Phase 7 — Analytics and Remaining Features ⬜
+## Phase 7 — Analytics and Remaining Features ✅
 
-- [ ] Visitor analytics with date-range and per-page stats
-- [ ] Download analytics with attribution
-- [ ] Contact messages inbox
-- [ ] DOCX generation parity
-- [ ] Commit and push
+Delivered together with Phase 6 (the original analytics/messages pages were implemented as
+part of the admin panel rather than a separate phase).
+
+- [x] Visitor analytics with date-range and per-page stats
+- [x] Download analytics with attribution
+- [x] Contact messages inbox
+- [x] DOCX generation parity
+- [x] Commit and push (`3bb6db8`)
 
 ## Phase 8 — Final Testing ⬜
 
@@ -138,3 +152,10 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 - `database/database.sql` (original) is preserved at `prisma/legacy/database.sql` for reference.
 - MySQL is not guaranteed to be running in the build environment; database-backed pages will be
   dynamic (no build-time DB access).
+- Admin flash messages travel through `?success=`/`?error=` query params instead of PHP sessions;
+  `AdminShell` renders them in the same Bootstrap alert style and clears them after display.
+- Product uploads validate extension, MIME and file signature (10 MB cap) and are stored under
+  `public/uploads/products/` with `prod_<hex>.<ext>` names; generated DOCX files still live in
+  `storage/fc/` and are served through `/api/download/[id]`.
+- Prisma cannot express SQL `COUNT(DISTINCT ...)` inside `groupBy`, so analytics distinct counts
+  are computed in TypeScript from the same rows to keep numbers identical to the PHP reports.
