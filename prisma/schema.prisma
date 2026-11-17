@@ -1,0 +1,247 @@
+// Tangoline Inc. — Prisma schema
+// Mirrors the original MySQL schema in prisma/legacy/database.sql.
+// The existing database is never overwritten; @@map/@map preserve legacy names.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum UserStatus {
+  active
+  disabled
+}
+
+enum StockStatus {
+  in_stock
+  out_of_stock
+}
+
+enum OrderStatus {
+  Pending
+  Processing
+  Completed
+  Cancelled
+}
+
+enum AccountType {
+  user
+  admin
+}
+
+enum LoginStatus {
+  success
+  failed
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  username  String   @unique @db.VarChar(60)
+  email     String   @unique @db.VarChar(120)
+  password  String   @db.VarChar(255)
+  fullName  String   @map("full_name") @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  @@index([username], name: "idx_admin_username")
+  @@map("admins")
+}
+
+model User {
+  id        Int        @id @default(autoincrement()) @db.UnsignedInt
+  username  String     @unique @db.VarChar(60)
+  email     String     @unique @db.VarChar(120)
+  password  String     @db.VarChar(255)
+  fullName  String     @default("") @map("full_name") @db.VarChar(100)
+  phone     String     @default("") @db.VarChar(30)
+  address   String?    @db.Text
+  city      String     @default("") @db.VarChar(80)
+  status    UserStatus @default(active)
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  orders    Order[]
+  cartItems CartItem[]
+  downloads Download[]
+  loginLogs LoginLog[]
+
+  @@index([email], name: "idx_user_email")
+  @@index([username], name: "idx_user_username")
+  @@index([status], name: "idx_user_status")
+  @@map("users")
+}
+
+model Category {
+  id          Int      @id @default(autoincrement()) @db.UnsignedInt
+  name        String   @unique @db.VarChar(80)
+  slug        String   @unique @db.VarChar(80)
+  description String?  @db.Text
+  image       String   @default("") @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  products Product[]
+
+  @@map("categories")
+}
+
+model Product {
+  id                 Int         @id @default(autoincrement()) @db.UnsignedInt
+  categoryId         Int         @map("category_id") @db.UnsignedInt
+  name               String      @db.VarChar(191)
+  slug               String      @unique @db.VarChar(191)
+  brand              String      @default("Gaming") @db.VarChar(60)
+  platform           String      @default("PlayStation 5") @db.VarChar(60)
+  price              Decimal     @default(0.00) @db.Decimal(10, 2)
+  originalPrice      Decimal?    @map("original_price") @db.Decimal(10, 2)
+  shortDescription   String      @default("") @map("short_description") @db.VarChar(255)
+  description        String      @db.Text
+  specifications     String?     @db.Text
+  systemRequirements String?     @map("system_requirements") @db.Text
+  image              String      @default("") @db.VarChar(255)
+  docxFile           String      @default("") @map("docx_file") @db.VarChar(255)
+  stockStatus        StockStatus @default(in_stock) @map("stock_status")
+  isFeatured         Boolean     @default(false) @map("is_featured") @db.TinyInt
+  viewsCount         Int         @default(0) @map("views_count") @db.UnsignedInt
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  category   Category    @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Restrict)
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+  downloads  Download[]
+
+  @@index([categoryId], name: "idx_prod_category")
+  @@index([brand], name: "idx_prod_brand")
+  @@index([slug], name: "idx_prod_slug")
+  @@index([isFeatured], name: "idx_prod_featured")
+  @@map("products")
+}
+
+model Order {
+  id              Int         @id @default(autoincrement()) @db.UnsignedInt
+  orderNumber     String      @unique @map("order_number") @db.VarChar(32)
+  userId          Int?        @map("user_id") @db.UnsignedInt
+  customerName    String      @map("customer_name") @db.VarChar(100)
+  customerEmail   String      @map("customer_email") @db.VarChar(120)
+  customerPhone   String      @map("customer_phone") @db.VarChar(30)
+  shippingAddress String      @map("shipping_address") @db.Text
+  city            String      @db.VarChar(80)
+  postalCode      String      @default("") @map("postal_code") @db.VarChar(20)
+  paymentMethod   String      @default("cash_on_delivery") @map("payment_method") @db.VarChar(50)
+  subtotal        Decimal     @default(0.00) @db.Decimal(10, 2)
+  shippingFee     Decimal     @default(0.00) @map("shipping_fee") @db.Decimal(10, 2)
+  totalAmount     Decimal     @default(0.00) @map("total_amount") @db.Decimal(10, 2)
+  status          OrderStatus @default(Pending)
+  notes           String?     @db.Text
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orderItems OrderItem[]
+
+  @@index([userId], name: "idx_order_user")
+  @@index([status], name: "idx_order_status")
+  @@index([orderNumber], name: "idx_order_num")
+  @@map("orders")
+}
+
+model OrderItem {
+  id           Int     @id @default(autoincrement()) @db.UnsignedInt
+  orderId      Int     @map("order_id") @db.UnsignedInt
+  productId    Int?    @map("product_id") @db.UnsignedInt
+  productName  String  @map("product_name") @db.VarChar(191)
+  productPrice Decimal @default(0.00) @map("product_price") @db.Decimal(10, 2)
+  quantity     Int     @default(1) @db.UnsignedInt
+  subtotal     Decimal @default(0.00) @db.Decimal(10, 2)
+  productImage String  @default("") @map("product_image") @db.VarChar(255)
+
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId], name: "idx_item_order")
+  @@index([productId], name: "idx_item_product")
+  @@map("order_items")
+}
+
+model CartItem {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  userId    Int?     @map("user_id") @db.UnsignedInt
+  sessionId String   @map("session_id") @db.VarChar(128)
+  productId Int      @map("product_id") @db.UnsignedInt
+  quantity  Int      @default(1) @db.UnsignedInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+
+  user    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, productId], name: "unique_cart_item")
+  @@index([sessionId], name: "idx_cart_session")
+  @@index([userId], name: "idx_cart_user")
+  @@map("cart_items")
+}
+
+model Download {
+  id           Int      @id @default(autoincrement()) @db.UnsignedInt
+  productId    Int      @map("product_id") @db.UnsignedInt
+  userId       Int?     @map("user_id") @db.UnsignedInt
+  sessionId    String   @default("") @map("session_id") @db.VarChar(128)
+  ipAddress    String   @default("") @map("ip_address") @db.VarChar(45)
+  fileName     String   @map("file_name") @db.VarChar(255)
+  downloadedAt DateTime @default(now()) @map("downloaded_at") @db.Timestamp(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId], name: "idx_download_product")
+  @@index([userId], name: "idx_download_user")
+  @@index([downloadedAt], name: "idx_download_date")
+  @@map("downloads")
+}
+
+model WebsiteVisit {
+  id         Int      @id @default(autoincrement()) @db.UnsignedInt
+  sessionId  String   @map("session_id") @db.VarChar(128)
+  ipHash     String   @default("") @map("ip_hash") @db.VarChar(64)
+  pageUrl    String   @map("page_url") @db.VarChar(255)
+  userAgent  String   @default("") @map("user_agent") @db.VarChar(255)
+  visitDate  DateTime @map("visit_date") @db.Date
+  visitedAt  DateTime @default(now()) @map("visited_at") @db.Timestamp(0)
+
+  @@index([visitDate], name: "idx_visit_date")
+  @@index([sessionId, visitDate], name: "idx_visit_session_date")
+  @@map("website_visits")
+}
+
+model LoginLog {
+  id          Int         @id @default(autoincrement()) @db.UnsignedInt
+  userId      Int?        @map("user_id") @db.UnsignedInt
+  accountType AccountType @default(user) @map("account_type")
+  identifier  String      @db.VarChar(120)
+  ipAddress   String      @default("") @map("ip_address") @db.VarChar(45)
+  status      LoginStatus @default(success)
+  userAgent   String      @default("") @map("user_agent") @db.VarChar(255)
+  loginTime   DateTime    @default(now()) @map("login_time") @db.Timestamp(0)
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId], name: "idx_login_user")
+  @@index([accountType], name: "idx_login_type")
+  @@index([loginTime], name: "idx_login_time")
+  @@map("login_logs")
+}
+
+model ContactMessage {
+  id        Int      @id @default(autoincrement()) @db.UnsignedInt
+  name      String   @db.VarChar(100)
+  email     String   @db.VarChar(120)
+  subject   String   @default("") @db.VarChar(200)
+  message   String   @db.Text
+  isRead    Boolean  @default(false) @map("is_read") @db.TinyInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+
+  @@index([isRead], name: "idx_contact_is_read")
+  @@map("contact_messages")
+}

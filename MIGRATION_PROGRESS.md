@@ -9,13 +9,15 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 
 ## Current Status
 
-- **Current phase:** Phase 1 — Repository Setup
-- **Latest commit:** _pending initial commit_
-- **Testing status:** Initial Next.js scaffold builds successfully (`npm run build`).
+- **Current phase:** Phase 2 — Database and Architecture ✅ complete → starting Phase 3
+- **Latest commit:** _pending Phase 2 commit_
+- **Testing status:** `npm run build` and `npx tsc --noEmit` pass; `prisma validate` and
+  `prisma generate` succeed. No live MySQL server in the build environment, so DB-backed
+  routes are dynamic and will be exercised once `DATABASE_URL` points at a real database.
 
 ---
 
-## Phase 1 — Repository Setup ✅ (in progress)
+## Phase 1 — Repository Setup ✅
 
 - [x] Verify Git, Node.js, npm, and GitHub CLI availability
 - [x] Clone original PHP repository as a read-only reference
@@ -25,15 +27,18 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 - [x] Copy original assets (logos, character art, product images, DOCX files, legacy SQL)
 - [x] Configure Git remote and identity
 - [x] Create `.env.example`, README, and this progress file
-- [ ] Commit and push initial setup
+- [x] Commit and push initial setup (`3a8e72d`)
 
-## Phase 2 — Database and Architecture ⬜
+## Phase 2 — Database and Architecture ✅
 
-- [ ] Prisma schema for all 11 tables
-- [ ] Prisma client singleton / DB connectivity
-- [ ] Environment variable loading & validation
-- [ ] Safe migration/import documentation (preserve existing data)
-- [ ] Session/JWT auth library, password hashing, activity logging helpers
+- [x] Prisma 7 schema mirroring all 11 legacy tables (enums, indexes, relations, `@map`)
+- [x] Lazy Prisma client singleton with MariaDB/MySQL driver adapter
+- [x] Environment validation (`zod`) and `.env.example`
+- [x] Safe import/migration guide (`docs/DATABASE.md`) — no destructive migrations
+- [x] Secure signed-cookie sessions, bcrypt hashing (legacy `$2y$` compatible), CSRF origin check
+- [x] Visitor/login analytics helpers and DOCX generation service
+- [x] Bootstrap 5.0.2 CSS retained for pixel-identical layout, original `site.css` imported
+- [x] `prisma validate`, `prisma generate`, `tsc`, and `next build` all pass
 - [ ] Commit and push
 
 ## Phase 3 — Storefront UI ⬜
