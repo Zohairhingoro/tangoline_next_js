@@ -4,7 +4,7 @@ import path from "node:path";
 import { formatPrice, slugify } from "@/lib/utils";
 
 export const DOCX_DIR = path.join(
-  process.cwd(),
+  /* turbopackIgnore: true */ process.cwd(),
   process.env.DOCX_STORAGE_DIR ?? path.join("storage", "fc"),
 );
 
@@ -102,7 +102,7 @@ function buildDocumentXml(product: DocxProduct): string {
 }
 
 export async function generateProductDocx(product: DocxProduct): Promise<string> {
-  await mkdir(DOCX_DIR, { recursive: true });
+  await mkdir(/* turbopackIgnore: true */ DOCX_DIR, { recursive: true });
   const fileName = `${product.slug || slugify(product.name)}-details.docx`;
   const filePath = path.join(DOCX_DIR, fileName);
 
@@ -126,7 +126,7 @@ export async function generateProductDocx(product: DocxProduct): Promise<string>
   zip.file("word/document.xml", buildDocumentXml(product));
 
   const buffer = await zip.generateAsync({ type: "nodebuffer" });
-  await writeFile(filePath, buffer);
+  await writeFile(/* turbopackIgnore: true */ filePath, buffer);
   return `fc/${fileName}`;
 }
 
@@ -135,7 +135,7 @@ export function resolveDocxPath(docxFile: string | null | undefined): string | n
   if (!docxFile) return null;
   const base = path.basename(docxFile.replace(/\\/g, "/"));
   if (!base.toLowerCase().endsWith(".docx")) return null;
-  const candidate = path.join(DOCX_DIR, base);
+  const candidate = path.join(/* turbopackIgnore: true */ DOCX_DIR, base);
   // Prevent directory traversal: resolved path must stay inside DOCX_DIR.
   if (!candidate.startsWith(DOCX_DIR + path.sep)) return null;
   return candidate;
@@ -145,7 +145,7 @@ export async function docxExists(docxFile: string | null | undefined): Promise<b
   const resolved = resolveDocxPath(docxFile);
   if (!resolved) return false;
   try {
-    await readFile(resolved);
+    await readFile(/* turbopackIgnore: true */ resolved);
     return true;
   } catch {
     return false;
@@ -157,7 +157,7 @@ export async function removeProductDocx(docxFile: string | null | undefined): Pr
   if (!resolved) return;
   try {
     const { unlink } = await import("node:fs/promises");
-    await unlink(resolved);
+    await unlink(/* turbopackIgnore: true */ resolved);
   } catch {
     // Ignore missing files.
   }

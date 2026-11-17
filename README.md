@@ -33,7 +33,7 @@ src/
     admin/              # Admin panel routes
     api/                # Route handlers (auth, cart, checkout, downloads, etc.)
   components/
-    store/              # Storefront UI components
+    store/              # Header, Footer, ProductCard, QuickView, CartDrawer, filters, toasts
     admin/              # Admin UI components
     ui/                 # Shared primitives
   lib/
@@ -92,6 +92,34 @@ Open <http://localhost:3000>.
 npm run build
 npm start
 ```
+
+### Useful scripts
+
+```bash
+npm run lint          # ESLint
+npm run typecheck     # TypeScript, no emit
+npm run db:validate   # Validate prisma/schema.prisma
+npm run db:generate   # Regenerate Prisma Client
+npm run db:pull       # Introspect the live MySQL schema
+```
+
+---
+
+## Implemented Storefront Routes
+
+| Next.js route | Original PHP page |
+|---|---|
+| `/` | `index.php` |
+| `/products` | `product.php` |
+| `/games` | `games.php` |
+| `/consoles` | `console.php` |
+| `/pc-parts` | `pc-parts.php` |
+| `/product/[slug]` | `product-details.php` |
+| `/api/download/[id]` | `download-details.php` |
+
+All storefront routes are server-rendered on demand so the build never needs a live MySQL
+connection. The original `site.css` and Bootstrap 5.0.2 are loaded alongside Tailwind to
+preserve the exact dark/red Quicksand design.
 
 ---
 

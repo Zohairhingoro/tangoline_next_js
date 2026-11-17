@@ -11,6 +11,7 @@ export type SessionUser = {
 /** Serialized product passed to client components / stored in the cart. */
 export type StoreProduct = {
   id: number;
+  categoryId: number;
   name: string;
   slug: string;
   brand: string;

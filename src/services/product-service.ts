@@ -5,9 +5,19 @@ import type { Prisma } from "@prisma/client";
 
 type ProductRow = Prisma.ProductGetPayload<{ include: { category: true } }>;
 
+export type ProductQueryOptions = {
+  search?: string;
+  brand?: string;
+  categorySlugs?: string[];
+  categoryId?: number;
+  /** PC-parts page type filter, matching the original name patterns. */
+  typeFilter?: string;
+};
+
 export function toStoreProduct(row: ProductRow): StoreProduct {
   return {
     id: row.id,
+    categoryId: row.categoryId,
     name: row.name,
     slug: row.slug,
     brand: row.brand,
@@ -37,26 +47,60 @@ export async function getFeaturedProducts(): Promise<StoreProduct[]> {
   return rows.map(toStoreProduct);
 }
 
+const PC_TYPE_PATTERNS: Record<string, string[]> = {
+  cpu: ["Processor", "Ryzen", "Core i9", "CPU"],
+  gpu: ["GeForce", "Radeon", "RTX", "RX"],
+  motherboard: ["Motherboard", "Z790", "B650"],
+  "ram-ssd": ["DDR5", "RAM", "SSD", "NVMe"],
+  "case-cooling": ["Case", "Cooler", "Kraken", "PSU", "Power Supply"],
+  peripheral: ["Keyboard", "Mouse", "Monitor"],
+};
+
 export async function getProductsByCategory(
   categorySlug: string,
-  options: { search?: string; brand?: string } = {},
+  options: ProductQueryOptions = {},
 ): Promise<StoreProduct[]> {
-  const { search, brand } = options;
+  const { search, brand, categorySlugs, categoryId, typeFilter } = options;
+  const slugs = categorySlugs ?? [categorySlug];
+
+  const categoryConditions: Prisma.ProductWhereInput[] = [
+    { category: { slug: { in: slugs } } },
+  ];
+  if (categoryId) categoryConditions.push({ categoryId });
+
+  const and: Prisma.ProductWhereInput[] = [{ OR: categoryConditions }];
+
+  if (search) {
+    const fields: Array<"name" | "description" | "brand" | "platform" | "specifications"> =
+      typeFilter || slugs.includes("pc-parts") || slugs.includes("pc")
+        ? ["name", "description", "brand", "platform", "specifications"]
+        : ["name", "description", "brand"];
+    and.push({
+      OR: fields.map((field) => ({ [field]: { contains: search } })),
+    });
+  }
+
+  if (brand && brand !== "all") {
+    and.push({ brand: { contains: brand } });
+  }
+
+  if (typeFilter && typeFilter !== "all") {
+    const patterns = PC_TYPE_PATTERNS[typeFilter];
+    if (patterns) {
+      and.push({ OR: patterns.map((pattern) => ({ name: { contains: pattern } })) });
+    } else {
+      and.push({
+        OR: [
+          { brand: { contains: typeFilter } },
+          { platform: { contains: typeFilter } },
+        ],
+      });
+    }
+  }
+
   const rows = await prisma.product.findMany({
     ...withCategory,
-    where: {
-      category: { slug: categorySlug },
-      ...(search
-        ? {
-            OR: [
-              { name: { contains: search } },
-              { description: { contains: search } },
-              { brand: { contains: search } },
-            ],
-          }
-        : {}),
-      ...(brand && brand !== "all" ? { brand: { contains: brand } } : {}),
-    },
+    where: { AND: and },
     orderBy: { id: "asc" },
   });
   return rows.map(toStoreProduct);
@@ -115,4 +159,23 @@ export async function incrementProductViews(id: number): Promise<void> {
   } catch {
     // Non-critical analytics update.
   }
+}
+
+export async function getProductDownloadInfo(id: number) {
+  return prisma.product.findUnique({
+    where: { id },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      brand: true,
+      platform: true,
+      price: true,
+      originalPrice: true,
+      description: true,
+      specifications: true,
+      systemRequirements: true,
+      docxFile: true,
+    },
+  });
 }

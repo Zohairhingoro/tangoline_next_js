@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  /* Config options here. Cache Components is disabled because DB-backed
+     storefront routes must stay dynamic and never prerender without MySQL. */
   turbopack: {
     rules: {
       "*.css": {
