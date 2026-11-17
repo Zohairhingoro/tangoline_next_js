@@ -10,7 +10,7 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 ## Current Status
 
 - **Current phase:** Phase 6 — Admin Panel ✅ complete → starting Phase 7 (Final Testing)
-- **Latest commit:** `3bb6db8` — `feat: implement admin panel with CRUD, analytics, and messages`
+- **Latest commit:** `8727701` — `feat: implement admin panel with CRUD, analytics, and messages`
 - **Testing status:** `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
   `npx prisma validate` all pass (Prisma config requires a `DATABASE_URL` to be present,
   but no live MySQL connection is needed for validation/build). DB-backed flows will be
@@ -112,7 +112,7 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
       100-row visit log; download analytics with fixed 14-day cyan chart and 200-row log
 - [x] Contact messages inbox with unread red borders, read/unread filters and mailto replies
 - [x] `lint`, `tsc`, `build`, `prisma validate` all pass; same-origin guards on every mutation
-- [x] Commit and push (`3bb6db8`)
+- [x] Commit and push (`8727701`)
 
 ## Phase 7 — Analytics and Remaining Features ✅
 
@@ -123,7 +123,7 @@ part of the admin panel rather than a separate phase).
 - [x] Download analytics with attribution
 - [x] Contact messages inbox
 - [x] DOCX generation parity
-- [x] Commit and push (`3bb6db8`)
+- [x] Commit and push (`8727701`)
 
 ## Phase 8 — Final Testing ⬜
 
