@@ -23,16 +23,29 @@ export default async function AdminLoginActivityPage({
   const filterType = (params.type ?? "").trim();
   const filterStatus = (params.status ?? "").trim();
 
-  // The original page offers a "customer" option but queries account_type='customer',
-  // while the database stores 'user'. Preserve that quirk exactly.
-  const typeFilter =
-    filterType && filterType !== "all"
-      ? filterType === "customer"
-        ? ("customer" as AccountType)
-        : (filterType as AccountType)
-      : null;
-  const statusFilter =
-    filterStatus && filterStatus !== "all" ? (filterStatus as LoginStatus) : null;
+  // The original page binds raw GET values into the SQL WHERE clause, so any value
+  // that is not actually stored in the enum column simply matches no rows. In
+  // particular the "customer" option queries account_type='customer' while the DB
+  // stores 'user'. Validate instead of casting so arbitrary values never reach
+  // Prisma as invalid enums, and force an empty result for non-matching filters.
+  const requestedType = filterType && filterType !== "all" ? filterType : null;
+  const requestedStatus =
+    filterStatus && filterStatus !== "all" ? filterStatus : null;
+
+  const typeMatches =
+    requestedType === null ||
+    requestedType === "user" ||
+    requestedType === "admin";
+  const statusMatches =
+    requestedStatus === null ||
+    requestedStatus === "success" ||
+    requestedStatus === "failed";
+
+  const typeFilter = typeMatches ? (requestedType as AccountType | null) : null;
+  const statusFilter = statusMatches
+    ? (requestedStatus as LoginStatus | null)
+    : null;
+  const noRows = !typeMatches || !statusMatches;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -40,6 +53,7 @@ export default async function AdminLoginActivityPage({
   const [logs, totalSuccess, totalFailed, todayLogins] = await Promise.all([
     prisma.loginLog.findMany({
       where: {
+        ...(noRows ? { id: 0 } : {}),
         ...(search ? { identifier: { contains: search } } : {}),
         ...(typeFilter ? { accountType: typeFilter } : {}),
         ...(statusFilter ? { status: statusFilter } : {}),

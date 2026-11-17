@@ -204,6 +204,13 @@ visitor/download analytics with Recharts, and the contact-message inbox. Flash m
 badge colours, date formats, filters, and original confirmation wording are preserved;
 only the underlying transport changed from PHP form POSTs to JSON/multipart Route Handlers.
 
+Final testing (Phase 8) added a static review pass over all routes and mutation handlers.
+Invalid admin filter values now return zero rows exactly like the original SQL instead of
+reaching Prisma as invalid enums, and an obsolete order-number helper was removed. All
+verification commands pass: `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
+`npx prisma validate`. Live DB-backed end-to-end testing remains the only outstanding item
+and requires a real `DATABASE_URL`.
+
 ---
 
 *Built for Tangoline Inc. — migrated from Raw PHP · MySQL PDO · Bootstrap 5.*

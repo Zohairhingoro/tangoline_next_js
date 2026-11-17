@@ -19,32 +19,37 @@ export default async function AdminUsersPage({
   const search = (params.q ?? "").trim();
   const status = (params.status ?? "").trim();
   const validStatus = status === "active" || status === "disabled";
+  // The original page binds raw GET values into SQL, so unknown statuses match
+  // no rows rather than showing every user.
+  const noRows = Boolean(status) && status !== "all" && !validStatus;
 
-  const users = await prisma.user.findMany({
-    where: {
-      ...(search
-        ? {
-            OR: [
-              { username: { contains: search } },
-              { email: { contains: search } },
-              { fullName: { contains: search } },
-              { phone: { contains: search } },
-            ],
-          }
-        : {}),
-      ...(validStatus ? { status: status as UserStatus } : {}),
-    },
-    include: {
-      _count: { select: { orders: true } },
-      loginLogs: {
-        where: { status: "success" },
-        orderBy: { loginTime: "desc" },
-        take: 1,
-        select: { loginTime: true },
-      },
-    },
-    orderBy: { id: "desc" },
-  });
+  const users = noRows
+    ? []
+    : await prisma.user.findMany({
+        where: {
+          ...(search
+            ? {
+                OR: [
+                  { username: { contains: search } },
+                  { email: { contains: search } },
+                  { fullName: { contains: search } },
+                  { phone: { contains: search } },
+                ],
+              }
+            : {}),
+          ...(validStatus ? { status: status as UserStatus } : {}),
+        },
+        include: {
+          _count: { select: { orders: true } },
+          loginLogs: {
+            where: { status: "success" },
+            orderBy: { loginTime: "desc" },
+            take: 1,
+            select: { loginTime: true },
+          },
+        },
+        orderBy: { id: "desc" },
+      });
 
   return (
     <>

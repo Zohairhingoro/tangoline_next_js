@@ -42,16 +42,6 @@ export function imagePath(image: string | null | undefined): string {
   return `/${image.replace(/^\/+/, "")}`;
 }
 
-/** Unique order number in the original TNG-XXXXX format. */
-export function generateOrderNumber(): string {
-  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let suffix = "";
-  for (let i = 0; i < 5; i += 1) {
-    suffix += alphabet[Math.floor(Math.random() * alphabet.length)];
-  }
-  return `TNG-${suffix}`;
-}
-
 export function truncate(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 }

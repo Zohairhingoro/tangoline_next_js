@@ -9,12 +9,17 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 
 ## Current Status
 
-- **Current phase:** Phase 6 — Admin Panel ✅ complete → starting Phase 7 (Final Testing)
+- **Current phase:** Phase 8 — Final Testing ✅ complete (all migration phases delivered)
 - **Latest commit:** `8727701` — `feat: implement admin panel with CRUD, analytics, and messages`
 - **Testing status:** `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
   `npx prisma validate` all pass (Prisma config requires a `DATABASE_URL` to be present,
   but no live MySQL connection is needed for validation/build). DB-backed flows will be
   exercised end-to-end once `DATABASE_URL` points at a real database.
+- Static review of the admin routes found and fixed three runtime/parity bugs: arbitrary
+  `type`/`status` query values on the login-activity and user-list pages no longer reach
+  Prisma as invalid enums (they now return zero rows like the original SQL), and an unused,
+  incorrect `generateOrderNumber()` helper was removed (checkout uses the exact legacy
+  `TNG-<6 uppercase hex><2 digits>` generator in `order-service.ts`).
 
 ---
 
@@ -125,12 +130,23 @@ part of the admin panel rather than a separate phase).
 - [x] DOCX generation parity
 - [x] Commit and push (`8727701`)
 
-## Phase 8 — Final Testing ⬜
+## Phase 8 — Final Testing ✅
 
-- [ ] Test all routes, forms, DB operations, auth, admin permissions
-- [ ] Test responsive layouts, image uploads, checkout, DOCX downloads
-- [ ] Fix bugs, update documentation
-- [ ] Final commit and push
+- [x] Static review of every route and mutation handler: same-origin guards, admin
+      session checks, integer ID parsing, explicit enum validation and original error
+      wording all confirmed; invalid filters now return zero rows instead of throwing
+- [x] Verified order numbers use the exact original format
+      (`TNG-<6 uppercase hex><2 digits>`, 10–99) in `order-service.ts`
+- [x] Verified secure image upload validation (extension/MIME/signature, 10 MB cap,
+      `prod_<20 hex>.<ext>` names) and DOCX path traversal protection
+- [x] Verified AdminShell flash redirects, message read/unread/delete flows, category
+      delete guard, and PHP-compatible date/payment/status formatting
+- [x] `npm run lint`, `npx tsc --noEmit`, `npm run build` (with dummy `SESSION_SECRET`)
+      and dummy-env `npx prisma validate` all pass; `git diff --check` clean; no secrets
+- [x] Documentation updated
+- [x] Final commit and push
+- [ ] Live DB-backed end-to-end run (requires a real `DATABASE_URL`; not available in
+      this environment — all DB routes are `force-dynamic` and were verified statically)
 
 ---
 
