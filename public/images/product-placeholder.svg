@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181818" />
+      <stop offset="100%" stop-color="#0a0a0a" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#e50914" />
+      <stop offset="100%" stop-color="#881616" />
+    </linearGradient>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#bgGrad)"/>
+  <circle cx="250" cy="210" r="90" fill="#202020" stroke="#333333" stroke-width="2"/>
+  <g transform="translate(190, 150)">
+    <!-- Gamepad Icon -->
+    <path d="M 60,15 C 38,15 22,28 15,48 C 10,63 4,95 22,108 C 34,116 48,105 57,86 L 63,86 C 72,105 86,116 98,108 C 116,95 110,63 105,48 C 98,28 82,15 60,15 Z" fill="none" stroke="url(#glowGrad)" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"/>
+    <!-- D-pad -->
+    <path d="M 38,44 L 38,64 M 28,54 L 48,54" stroke="#ffffff" stroke-width="4" stroke-linecap="round"/>
+    <!-- Buttons -->
+    <circle cx="82" cy="46" r="4" fill="#ffffff"/>
+    <circle cx="90" cy="54" r="4" fill="#ffffff"/>
+    <circle cx="74" cy="54" r="4" fill="#ffffff"/>
+    <circle cx="82" cy="62" r="4" fill="#ffffff"/>
+  </g>
+  <text x="250" y="340" text-anchor="middle" font-family="'Segoe UI', Roboto, sans-serif" font-size="20" font-weight="700" fill="#ffffff" letter-spacing="3">TANGOLINE GAMING</text>
+  <text x="250" y="375" text-anchor="middle" font-family="'Segoe UI', Roboto, sans-serif" font-size="14" fill="#888888" letter-spacing="1">Official Product Asset</text>
+</svg>
