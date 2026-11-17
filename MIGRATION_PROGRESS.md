@@ -10,7 +10,7 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 ## Current Status
 
 - **Current phase:** Phase 8 — Final Testing ✅ complete (all migration phases delivered)
-- **Latest commit:** `8727701` — `feat: implement admin panel with CRUD, analytics, and messages`
+- **Latest commit:** `e4c5c8a` — `fix: harden admin filters and finalize phase 8 testing`
 - **Testing status:** `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
   `npx prisma validate` all pass (Prisma config requires a `DATABASE_URL` to be present,
   but no live MySQL connection is needed for validation/build). DB-backed flows will be
