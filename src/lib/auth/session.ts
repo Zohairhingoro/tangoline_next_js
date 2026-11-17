@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 import { getEnv } from "@/lib/env";
 import type { SessionUser } from "@/types";
 
@@ -54,15 +55,24 @@ export async function getSession(): Promise<SessionUser | null> {
   return verifySessionToken(store.get(COOKIE_NAME)?.value);
 }
 
-export async function setSession(user: SessionUser): Promise<void> {
-  const store = await cookies();
-  store.set(COOKIE_NAME, createSessionToken(user), {
+function cookieOptions() {
+  return {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    sameSite: "lax" as const,
     path: "/",
     maxAge: MAX_AGE,
-  });
+  };
+}
+
+/** Set the session cookie on an explicit Route Handler response. */
+export function setSessionCookie(response: NextResponse, user: SessionUser): void {
+  response.cookies.set(COOKIE_NAME, createSessionToken(user), cookieOptions());
+}
+
+export async function setSession(user: SessionUser): Promise<void> {
+  const store = await cookies();
+  store.set(COOKIE_NAME, createSessionToken(user), cookieOptions());
 }
 
 export async function destroySession(): Promise<void> {

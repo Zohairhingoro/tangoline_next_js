@@ -9,6 +9,6 @@ export const metadata: Metadata = {
 };
 
 export default async function CheckoutPage() {
-  const user = await requireCustomer();
+  const user = await requireCustomer("/checkout");
   return <CheckoutForm user={user} />;
 }

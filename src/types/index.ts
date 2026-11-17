@@ -59,3 +59,24 @@ export type ActionResult = {
   message?: string;
   [key: string]: unknown;
 };
+
+export type CustomerOrderSummary = {
+  id: number;
+  orderNumber: string;
+  createdAt: string;
+  itemCount: number;
+  total: number;
+  paymentMethod: string;
+  status: string;
+};
+
+export type ProfilePageData = {
+  username: string;
+  email: string;
+  fullName: string;
+  phone: string;
+  address: string;
+  city: string;
+  memberSince: string;
+  orders: CustomerOrderSummary[];
+};

@@ -9,9 +9,8 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 
 ## Current Status
 
-- **Current phase:** Phase 4 — Storefront Functionality ✅ complete → starting Phase 5
-- **Latest commit:** see `git log` for the `feat: implement storefront cart, checkout and
-  contact flows` commit (Phase 4 implementation)
+- **Current phase:** Phase 5 — Customer System ✅ complete → starting Phase 6
+- **Latest commit:** see `git log` for the Phase 5 implementation commit
 - **Testing status:** `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
   `npx prisma validate` all pass (Prisma config requires a `DATABASE_URL` to be present,
   but no live MySQL connection is needed for validation/build). DB-backed flows will be
@@ -74,11 +73,24 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 - [x] `lint`, `tsc`, `build`, `prisma validate` all pass; every new route is dynamic
 - [x] Commit and push (Phase 4 implementation commit in `git log`)
 
-## Phase 5 — Customer System ⬜
+## Phase 5 — Customer System ✅
 
-- [ ] Registration, login, logout (bcrypt/argon2 hashing)
-- [ ] Profile management, change password
-- [ ] Order history with item snapshots
+- [x] Standalone `(auth)` route group with the original animated grid backdrop
+      (`src/styles/auth.css`, 200 spans) for login and registration
+- [x] `/login` + `/api/auth/login` with bcrypt verification (legacy `$2y$` compatible),
+      login-activity logging, and exact original error wording
+- [x] `/register` + `/api/auth/register` with bcrypt hashing, duplicate username/email
+      detection, and legacy-style error messages
+- [x] `/logout` + `/api/auth/logout` clearing the httpOnly session cookie and the legacy
+      `tangoline_user` localStorage key
+- [x] Signed-cookie sessions set explicitly on Route Handler responses via
+      `setSessionCookie()`; `safeRedirectPath()` blocks open redirects and
+      `requireCustomer()` now preserves the return path (e.g. `/checkout`, `/profile`)
+- [x] `/profile` guarded page with profile info card, password-change form, profile-update
+      form, and purchase-history table matching the original `profile.php`
+- [x] `/api/profile` + `/api/profile/password` with server-side authorization, zod
+      validation, current-password verification, and bcrypt re-hashing
+- [x] `lint`, `tsc`, `build`, `prisma validate` all pass
 - [ ] Commit and push
 
 ## Phase 6 — Admin Panel ⬜
@@ -118,8 +130,11 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
   `/api/download/[id]` route serves existing files, generates missing ones on demand,
   updates `products.docx_file`, and records a `downloads` row (log failure never blocks).
 - Checkout re-reads every product price from MySQL before creating an order; client-supplied
-  prices are never trusted. Login/register/profile routes arrive in Phase 5, so `/checkout`
-  currently redirects unauthenticated visitors to `/login` (not yet implemented).
+  prices are never trusted. Unauthenticated visitors to `/checkout` and `/profile` are
+  redirected to `/login?redirect=…` and returned to their original page after login.
+- The legacy `tangoline_user` localStorage key is still written/cleared on login/register/
+  logout for parity with the original client-side UI, but the header reads the authoritative
+  httpOnly session cookie on the server.
 - `database/database.sql` (original) is preserved at `prisma/legacy/database.sql` for reference.
 - MySQL is not guaranteed to be running in the build environment; database-backed pages will be
   dynamic (no build-time DB access).

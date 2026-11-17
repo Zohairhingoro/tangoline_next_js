@@ -56,6 +56,12 @@ export function truncate(text: string, max: number): string {
   return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 }
 
+/** Only allow local redirects; prevents open redirects through the login form. */
+export function safeRedirectPath(value: string | null | undefined): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
+  return value;
+}
+
 /** Convert a catalog product into the serialized cart item used by the client. */
 export function toCartItem(product: StoreProduct, qty = 1): CartItem {
   return {

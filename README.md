@@ -30,10 +30,12 @@ and MySQL.
 src/
   app/
     (store)/            # Public storefront routes
+    (auth)/             # Login and registration (original animated backdrop)
     admin/              # Admin panel routes
     api/                # Route handlers (auth, cart, checkout, downloads, etc.)
   components/
     store/              # Header, Footer, ProductCard, QuickView, CartDrawer, filters, toasts
+    auth/               # LoginForm, RegisterForm, animated AuthBackdrop
     admin/              # Admin UI components
     ui/                 # Shared primitives
   lib/
@@ -123,6 +125,15 @@ npm run db:pull       # Introspect the live MySQL schema
 | `/api/checkout` | `checkout.php` (order creation) |
 | `/api/contact` | `contact-us.php` (message storage) |
 | `/api/download/[id]` | `download-details.php` |
+| `/login` | `login.php` |
+| `/register` | `register.php` |
+| `/logout` | `logout.php` |
+| `/profile` | `profile.php` |
+| `/api/auth/login` | `login.php` (authentication) |
+| `/api/auth/register` | `register.php` (registration) |
+| `/api/auth/logout` | `logout.php` (session teardown) |
+| `/api/profile` | `profile.php` (profile update) |
+| `/api/profile/password` | `profile.php` (password change) |
 
 All storefront routes are server-rendered on demand so the build never needs a live MySQL
 connection. The original `site.css` and Bootstrap 5.0.2 are loaded alongside Tailwind to
@@ -152,7 +163,13 @@ Phase 4 added the transactional checkout flow. Order numbers follow the original
 `TNG-<6 uppercase hex><2 digits>` format, and every line price is re-checked against MySQL
 before an order is written. Cart state is mirrored into `cart_items` via an httpOnly cart-session
 cookie, and all mutating API routes enforce same-origin checks and zod validation.
-Login/register/profile pages are planned for Phase 5.
+
+Phase 5 added the customer system: login, registration, logout, profile editing, password
+changes, and order history. Passwords use bcrypt (legacy `$2y$` hashes are verified by
+normalising the prefix), sessions are signed httpOnly cookies, and guarded pages redirect
+unauthenticated visitors back after login via a sanitised `redirect` parameter. The original
+animated auth backdrop and error wording are preserved. Admin panel and analytics arrive in
+the remaining phases.
 
 ---
 

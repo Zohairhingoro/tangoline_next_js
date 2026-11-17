@@ -3,10 +3,10 @@ import { getSession } from "@/lib/auth/session";
 import type { SessionUser } from "@/types";
 
 /** Server-side guard for customer pages. */
-export async function requireCustomer(): Promise<SessionUser> {
+export async function requireCustomer(redirectPath = "/"): Promise<SessionUser> {
   const session = await getSession();
   if (!session || session.role !== "customer") {
-    redirect("/login");
+    redirect(`/login?redirect=${encodeURIComponent(redirectPath)}`);
   }
   return session;
 }
