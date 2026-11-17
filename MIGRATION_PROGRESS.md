@@ -10,7 +10,7 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 ## Current Status
 
 - **Current phase:** Phase 5 — Customer System ✅ complete → starting Phase 6
-- **Latest commit:** see `git log` for the Phase 5 implementation commit
+- **Latest commit:** `4aac872` — `feat: implement customer login, registration and profile system`
 - **Testing status:** `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
   `npx prisma validate` all pass (Prisma config requires a `DATABASE_URL` to be present,
   but no live MySQL connection is needed for validation/build). DB-backed flows will be
@@ -91,7 +91,7 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 - [x] `/api/profile` + `/api/profile/password` with server-side authorization, zod
       validation, current-password verification, and bcrypt re-hashing
 - [x] `lint`, `tsc`, `build`, `prisma validate` all pass
-- [ ] Commit and push
+- [x] Commit and push (`4aac872`)
 
 ## Phase 6 — Admin Panel ⬜
 
