@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { headers } from "next/headers";
 import { prisma } from "@/lib/db/prisma";
+import { nextId } from "@/lib/db/next-id";
 import type { AccountType } from "@prisma/client";
 
 /** Mirrors the original `recordVisitor()` helper — fails silently. */
@@ -17,6 +18,7 @@ export async function recordVisitor(pageUrl: string): Promise<void> {
 
     await prisma.websiteVisit.create({
       data: {
+        id: await nextId("website_visits"),
         sessionId,
         ipHash: createHash("sha256").update(`${ip}${today.toISOString().slice(0, 7)}`).digest("hex"),
         pageUrl: pageUrl.slice(0, 255),
@@ -43,6 +45,7 @@ export async function logActivity(params: {
 
     await prisma.loginLog.create({
       data: {
+        id: await nextId("login_logs"),
         userId: params.userId ?? null,
         accountType: params.accountType,
         identifier: params.identifier.slice(0, 120),

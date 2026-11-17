@@ -1,13 +1,14 @@
-// Tangoline Inc. — Prisma schema
-// Mirrors the original MySQL schema in prisma/legacy/database.sql.
-// The existing database is never overwritten; @@map/@map preserve legacy names.
+// Tangoline Inc. — Prisma schema (MongoDB Atlas)
+// Numeric IDs are preserved from the legacy MySQL data via @map("_id"), so the
+// application keeps using integer IDs. Values are assigned explicitly by nextId().
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
 
 enum UserStatus {
@@ -37,49 +38,54 @@ enum LoginStatus {
   failed
 }
 
-model Admin {
-  id        Int      @id @default(autoincrement()) @db.UnsignedInt
-  username  String   @unique @db.VarChar(60)
-  email     String   @unique @db.VarChar(120)
-  password  String   @db.VarChar(255)
-  fullName  String   @map("full_name") @db.VarChar(100)
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+/// Assigns the next integer ID for each collection (replaces MySQL autoincrement).
+model Sequence {
+  name  String @id @map("_id")
+  value Int
 
-  @@index([username], name: "idx_admin_username")
+  @@map("sequences")
+}
+
+model Admin {
+  id        Int      @id @map("_id")
+  username  String   @unique
+  email     String   @unique
+  password  String
+  fullName  String   @map("full_name")
+  createdAt DateTime @default(now()) @map("created_at")
+
   @@map("admins")
 }
 
 model User {
-  id        Int        @id @default(autoincrement()) @db.UnsignedInt
-  username  String     @unique @db.VarChar(60)
-  email     String     @unique @db.VarChar(120)
-  password  String     @db.VarChar(255)
-  fullName  String     @default("") @map("full_name") @db.VarChar(100)
-  phone     String     @default("") @db.VarChar(30)
-  address   String?    @db.Text
-  city      String     @default("") @db.VarChar(80)
+  id        Int        @id @map("_id")
+  username  String     @unique
+  email     String     @unique
+  password  String
+  fullName  String     @default("") @map("full_name")
+  phone     String     @default("")
+  address   String?
+  city      String     @default("")
   status    UserStatus @default(active)
-  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime   @updatedAt @map("updated_at") @db.Timestamp(0)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
 
   orders    Order[]
   cartItems CartItem[]
   downloads Download[]
   loginLogs LoginLog[]
 
-  @@index([email], name: "idx_user_email")
-  @@index([username], name: "idx_user_username")
   @@index([status], name: "idx_user_status")
   @@map("users")
 }
 
 model Category {
-  id          Int      @id @default(autoincrement()) @db.UnsignedInt
-  name        String   @unique @db.VarChar(80)
-  slug        String   @unique @db.VarChar(80)
-  description String?  @db.Text
-  image       String   @default("") @db.VarChar(255)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  id          Int      @id @map("_id")
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  image       String   @default("")
+  createdAt   DateTime @default(now()) @map("created_at")
 
   products Product[]
 
@@ -87,25 +93,25 @@ model Category {
 }
 
 model Product {
-  id                 Int         @id @default(autoincrement()) @db.UnsignedInt
-  categoryId         Int         @map("category_id") @db.UnsignedInt
-  name               String      @db.VarChar(191)
-  slug               String      @unique @db.VarChar(191)
-  brand              String      @default("Gaming") @db.VarChar(60)
-  platform           String      @default("PlayStation 5") @db.VarChar(60)
-  price              Decimal     @default(0.00) @db.Decimal(10, 2)
-  originalPrice      Decimal?    @map("original_price") @db.Decimal(10, 2)
-  shortDescription   String      @default("") @map("short_description") @db.VarChar(255)
-  description        String      @db.Text
-  specifications     String?     @db.Text
-  systemRequirements String?     @map("system_requirements") @db.Text
-  image              String      @default("") @db.VarChar(255)
-  docxFile           String      @default("") @map("docx_file") @db.VarChar(255)
+  id                 Int         @id @map("_id")
+  categoryId         Int         @map("category_id")
+  name               String
+  slug               String      @unique
+  brand              String      @default("Gaming")
+  platform           String      @default("PlayStation 5")
+  price              Float       @default(0)
+  originalPrice      Float?      @map("original_price")
+  shortDescription   String      @default("") @map("short_description")
+  description        String
+  specifications     String?
+  systemRequirements String?     @map("system_requirements")
+  image              String      @default("")
+  docxFile           String      @default("") @map("docx_file")
   stockStatus        StockStatus @default(in_stock) @map("stock_status")
-  isFeatured         Boolean     @default(false) @map("is_featured") @db.TinyInt
-  viewsCount         Int         @default(0) @map("views_count") @db.UnsignedInt
-  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamp(0)
+  isFeatured         Boolean     @default(false) @map("is_featured")
+  viewsCount         Int         @default(0) @map("views_count")
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
 
   category   Category    @relation(fields: [categoryId], references: [id], onUpdate: Cascade, onDelete: Restrict)
   orderItems OrderItem[]
@@ -114,48 +120,46 @@ model Product {
 
   @@index([categoryId], name: "idx_prod_category")
   @@index([brand], name: "idx_prod_brand")
-  @@index([slug], name: "idx_prod_slug")
   @@index([isFeatured], name: "idx_prod_featured")
   @@map("products")
 }
 
 model Order {
-  id              Int         @id @default(autoincrement()) @db.UnsignedInt
-  orderNumber     String      @unique @map("order_number") @db.VarChar(32)
-  userId          Int?        @map("user_id") @db.UnsignedInt
-  customerName    String      @map("customer_name") @db.VarChar(100)
-  customerEmail   String      @map("customer_email") @db.VarChar(120)
-  customerPhone   String      @map("customer_phone") @db.VarChar(30)
-  shippingAddress String      @map("shipping_address") @db.Text
-  city            String      @db.VarChar(80)
-  postalCode      String      @default("") @map("postal_code") @db.VarChar(20)
-  paymentMethod   String      @default("cash_on_delivery") @map("payment_method") @db.VarChar(50)
-  subtotal        Decimal     @default(0.00) @db.Decimal(10, 2)
-  shippingFee     Decimal     @default(0.00) @map("shipping_fee") @db.Decimal(10, 2)
-  totalAmount     Decimal     @default(0.00) @map("total_amount") @db.Decimal(10, 2)
+  id              Int         @id @map("_id")
+  orderNumber     String      @unique @map("order_number")
+  userId          Int?        @map("user_id")
+  customerName    String      @map("customer_name")
+  customerEmail   String      @map("customer_email")
+  customerPhone   String      @map("customer_phone")
+  shippingAddress String      @map("shipping_address")
+  city            String
+  postalCode      String      @default("") @map("postal_code")
+  paymentMethod   String      @default("cash_on_delivery") @map("payment_method")
+  subtotal        Float       @default(0)
+  shippingFee     Float       @default(0) @map("shipping_fee")
+  totalAmount     Float       @default(0) @map("total_amount")
   status          OrderStatus @default(Pending)
-  notes           String?     @db.Text
-  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamp(0)
+  notes           String?
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
 
   user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   orderItems OrderItem[]
 
   @@index([userId], name: "idx_order_user")
   @@index([status], name: "idx_order_status")
-  @@index([orderNumber], name: "idx_order_num")
   @@map("orders")
 }
 
 model OrderItem {
-  id           Int     @id @default(autoincrement()) @db.UnsignedInt
-  orderId      Int     @map("order_id") @db.UnsignedInt
-  productId    Int?    @map("product_id") @db.UnsignedInt
-  productName  String  @map("product_name") @db.VarChar(191)
-  productPrice Decimal @default(0.00) @map("product_price") @db.Decimal(10, 2)
-  quantity     Int     @default(1) @db.UnsignedInt
-  subtotal     Decimal @default(0.00) @db.Decimal(10, 2)
-  productImage String  @default("") @map("product_image") @db.VarChar(255)
+  id           Int    @id @map("_id")
+  orderId      Int    @map("order_id")
+  productId    Int?   @map("product_id")
+  productName  String @map("product_name")
+  productPrice Float  @default(0) @map("product_price")
+  quantity     Int    @default(1)
+  subtotal     Float  @default(0)
+  productImage String @default("") @map("product_image")
 
   order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
@@ -166,13 +170,13 @@ model OrderItem {
 }
 
 model CartItem {
-  id        Int      @id @default(autoincrement()) @db.UnsignedInt
-  userId    Int?     @map("user_id") @db.UnsignedInt
-  sessionId String   @map("session_id") @db.VarChar(128)
-  productId Int      @map("product_id") @db.UnsignedInt
-  quantity  Int      @default(1) @db.UnsignedInt
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamp(0)
+  id        Int      @id @map("_id")
+  userId    Int?     @map("user_id")
+  sessionId String   @map("session_id")
+  productId Int      @map("product_id")
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   user    User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
@@ -184,13 +188,13 @@ model CartItem {
 }
 
 model Download {
-  id           Int      @id @default(autoincrement()) @db.UnsignedInt
-  productId    Int      @map("product_id") @db.UnsignedInt
-  userId       Int?     @map("user_id") @db.UnsignedInt
-  sessionId    String   @default("") @map("session_id") @db.VarChar(128)
-  ipAddress    String   @default("") @map("ip_address") @db.VarChar(45)
-  fileName     String   @map("file_name") @db.VarChar(255)
-  downloadedAt DateTime @default(now()) @map("downloaded_at") @db.Timestamp(0)
+  id           Int      @id @map("_id")
+  productId    Int      @map("product_id")
+  userId       Int?     @map("user_id")
+  sessionId    String   @default("") @map("session_id")
+  ipAddress    String   @default("") @map("ip_address")
+  fileName     String   @map("file_name")
+  downloadedAt DateTime @default(now()) @map("downloaded_at")
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
@@ -202,13 +206,13 @@ model Download {
 }
 
 model WebsiteVisit {
-  id         Int      @id @default(autoincrement()) @db.UnsignedInt
-  sessionId  String   @map("session_id") @db.VarChar(128)
-  ipHash     String   @default("") @map("ip_hash") @db.VarChar(64)
-  pageUrl    String   @map("page_url") @db.VarChar(255)
-  userAgent  String   @default("") @map("user_agent") @db.VarChar(255)
-  visitDate  DateTime @map("visit_date") @db.Date
-  visitedAt  DateTime @default(now()) @map("visited_at") @db.Timestamp(0)
+  id         Int      @id @map("_id")
+  sessionId  String   @map("session_id")
+  ipHash     String   @default("") @map("ip_hash")
+  pageUrl    String   @map("page_url")
+  userAgent  String   @default("") @map("user_agent")
+  visitDate  DateTime @map("visit_date")
+  visitedAt  DateTime @default(now()) @map("visited_at")
 
   @@index([visitDate], name: "idx_visit_date")
   @@index([sessionId, visitDate], name: "idx_visit_session_date")
@@ -216,14 +220,14 @@ model WebsiteVisit {
 }
 
 model LoginLog {
-  id          Int         @id @default(autoincrement()) @db.UnsignedInt
-  userId      Int?        @map("user_id") @db.UnsignedInt
+  id          Int         @id @map("_id")
+  userId      Int?        @map("user_id")
   accountType AccountType @default(user) @map("account_type")
-  identifier  String      @db.VarChar(120)
-  ipAddress   String      @default("") @map("ip_address") @db.VarChar(45)
+  identifier  String
+  ipAddress   String      @default("") @map("ip_address")
   status      LoginStatus @default(success)
-  userAgent   String      @default("") @map("user_agent") @db.VarChar(255)
-  loginTime   DateTime    @default(now()) @map("login_time") @db.Timestamp(0)
+  userAgent   String      @default("") @map("user_agent")
+  loginTime   DateTime    @default(now()) @map("login_time")
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -234,13 +238,13 @@ model LoginLog {
 }
 
 model ContactMessage {
-  id        Int      @id @default(autoincrement()) @db.UnsignedInt
-  name      String   @db.VarChar(100)
-  email     String   @db.VarChar(120)
-  subject   String   @default("") @db.VarChar(200)
-  message   String   @db.Text
-  isRead    Boolean  @default(false) @map("is_read") @db.TinyInt
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamp(0)
+  id        Int      @id @map("_id")
+  name      String
+  email     String
+  subject   String   @default("")
+  message   String
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([isRead], name: "idx_contact_is_read")
   @@map("contact_messages")

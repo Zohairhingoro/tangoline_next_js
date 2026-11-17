@@ -9,17 +9,14 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 
 ## Current Status
 
-- **Current phase:** Phase 8 — Final Testing ✅ complete (all migration phases delivered)
-- **Latest commit:** `e4c5c8a` — `fix: harden admin filters and finalize phase 8 testing`
-- **Testing status:** `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
-  `npx prisma validate` all pass (Prisma config requires a `DATABASE_URL` to be present,
-  but no live MySQL connection is needed for validation/build). DB-backed flows will be
-  exercised end-to-end once `DATABASE_URL` points at a real database.
-- Static review of the admin routes found and fixed three runtime/parity bugs: arbitrary
-  `type`/`status` query values on the login-activity and user-list pages no longer reach
-  Prisma as invalid enums (they now return zero rows like the original SQL), and an unused,
-  incorrect `generateOrderNumber()` helper was removed (checkout uses the exact legacy
-  `TNG-<6 uppercase hex><2 digits>` generator in `order-service.ts`).
+- **Current phase:** MongoDB Atlas rewrite — code complete, live DB verification pending.
+- **Latest commit:** see `git log` (this commit contains the MongoDB rewrite).
+- **Testing status:** `npm run lint`, `npx tsc --noEmit`, `npm run build`, and dummy-env
+  `npx prisma validate` all pass. `npm run db:migrate-sql:dry` parses the legacy dump into
+  45 documents (1 admin, 1 user, 3 categories, 40 products). A live Atlas connection string
+  is still required for runtime/end-to-end testing.
+- The original PHP/MySQL phases below are preserved as history. The MongoDB rewrite in Phase 9
+  supersedes the MySQL-specific implementation details; storefront/admin UI parity is unchanged.
 
 ---
 
@@ -33,13 +30,12 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 - [x] Copy original assets (logos, character art, product images, DOCX files, legacy SQL)
 - [x] Configure Git remote and identity
 - [x] Create `.env.example`, README, and this progress file
-- [x] Commit and push initial setup (`3a8e72d`)
+- [x] Commit and push (`3a8e72d`)
 
-## Phase 2 — Database and Architecture ✅
+## Phase 2 — Database and Architecture ✅ (superseded by Phase 9)
 
-- [x] Prisma 7 schema mirroring all 11 legacy tables (enums, indexes, relations, `@map`)
-- [x] Lazy Prisma client singleton with MariaDB/MySQL driver adapter
-- [x] Environment validation (`zod`) and `.env.example`
+- [x] Prisma schema mirroring all 11 legacy tables (enums, indexes, relations, `@map`)
+- [x] Lazy Prisma client singleton and environment validation
 - [x] Safe import/migration guide (`docs/DATABASE.md`) — no destructive migrations
 - [x] Secure signed-cookie sessions, bcrypt hashing (legacy `$2y$` compatible), CSRF origin check
 - [x] Visitor/login analytics helpers and DOCX generation service
@@ -71,8 +67,7 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 - [x] About Us page (`/about-us`)
 - [x] Checkout (`/checkout`) guarded by `requireCustomer()` with prefilled shipping fields,
       payment method selection, and geolocation-assisted address fill
-- [x] Order creation with exact legacy `TNG-<hex><random>` numbers, DB-validated prices,
-      `order_items` snapshots, and cart clearing in one transaction
+- [x] Order creation with exact legacy `TNG-<hex><random>` numbers and DB-validated prices
 - [x] `/api/contact` + contact page storing validated messages in `contact_messages`
 - [x] DOCX download tracking in `downloads` with on-demand generation and `docx_file` update
 - [x] `lint`, `tsc`, `build`, `prisma validate` all pass; every new route is dynamic
@@ -90,7 +85,7 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
       `tangoline_user` localStorage key
 - [x] Signed-cookie sessions set explicitly on Route Handler responses via
       `setSessionCookie()`; `safeRedirectPath()` blocks open redirects and
-      `requireCustomer()` now preserves the return path (e.g. `/checkout`, `/profile`)
+      `requireCustomer()` preserves the return path
 - [x] `/profile` guarded page with profile info card, password-change form, profile-update
       form, and purchase-history table matching the original `profile.php`
 - [x] `/api/profile` + `/api/profile/password` with server-side authorization, zod
@@ -141,12 +136,35 @@ part of the admin panel rather than a separate phase).
       `prod_<20 hex>.<ext>` names) and DOCX path traversal protection
 - [x] Verified AdminShell flash redirects, message read/unread/delete flows, category
       delete guard, and PHP-compatible date/payment/status formatting
-- [x] `npm run lint`, `npx tsc --noEmit`, `npm run build` (with dummy `SESSION_SECRET`)
-      and dummy-env `npx prisma validate` all pass; `git diff --check` clean; no secrets
+- [x] `npm run lint`, `npx tsc --noEmit`, `npm run build` and dummy-env `npx prisma validate`
+      all pass; `git diff --check` clean; no secrets
 - [x] Documentation updated
-- [x] Final commit and push
-- [ ] Live DB-backed end-to-end run (requires a real `DATABASE_URL`; not available in
-      this environment — all DB routes are `force-dynamic` and were verified statically)
+- [x] Final MySQL-version commit and push (`e4c5c8a` followed by `0f640a7`)
+
+## Phase 9 — MongoDB Atlas Rewrite ✅ (code complete)
+
+- [x] Replaced the MySQL datasource with `provider = "mongodb"` and inline
+      `url = env("DATABASE_URL")`; removed `prisma.config.ts`
+- [x] Downgraded Prisma/`@prisma/client` from 7.10.1 to 6.19.3 because Prisma 7 requires a
+      driver adapter and no official MongoDB adapter exists; added the `mongodb` driver for the
+      data importer
+- [x] Preserved legacy integer IDs as MongoDB `_id` (`Int @id @map("_id")`), removed
+      MySQL-only `@db.*` types and redundant indexes, changed `Decimal` to `Float`
+- [x] Added `Sequence` model (`@@map("sequences")`) and atomic `nextId()` / `nextIds()` helpers
+      to replace MySQL autoincrement
+- [x] Added explicit IDs at every create site: visits, login logs, contact messages, downloads,
+      users, categories, products, cart items, orders, and order items
+- [x] Replaced `groupBy` analytics with JavaScript aggregation and removed cross-collection
+      `$transaction` calls in cart/checkout in favour of sequential writes
+- [x] Added `prisma/migrate-sql-to-mongo.mjs`: dry-run parser, per-table legacy defaults,
+      preserve `_id`, upsert by default, `--replace` for a clean reimport, and sequence seeding
+- [x] Updated `.env.example`, `README.md`, `docs/DATABASE.md`, and npm scripts
+      (`db:migrate-sql`, `db:migrate-sql:dry`)
+- [x] Verified `npm run lint`, `npx tsc --noEmit`, `npm run build`, dummy-env
+      `npx prisma validate`, and `npm run db:migrate-sql:dry` all pass
+- [x] Commit and push MongoDB rewrite
+- [ ] Provide a real MongoDB Atlas `DATABASE_URL`, create local `.env`, run the import,
+      and verify all storefront/admin routes end-to-end
 
 ---
 
@@ -159,19 +177,21 @@ part of the admin panel rather than a separate phase).
 - Original DOCX files live in `fc/`; they are copied to `storage/fc/`. The new
   `/api/download/[id]` route serves existing files, generates missing ones on demand,
   updates `products.docx_file`, and records a `downloads` row (log failure never blocks).
-- Checkout re-reads every product price from MySQL before creating an order; client-supplied
-  prices are never trusted. Unauthenticated visitors to `/checkout` and `/profile` are
-  redirected to `/login?redirect=…` and returned to their original page after login.
+- Checkout re-reads every product price from MongoDB before creating an order; client-supplied
+  prices are never trusted. Write operations run sequentially rather than inside one transaction,
+  so a mid-write failure can leave partial state.
 - The legacy `tangoline_user` localStorage key is still written/cleared on login/register/
   logout for parity with the original client-side UI, but the header reads the authoritative
   httpOnly session cookie on the server.
 - `database/database.sql` (original) is preserved at `prisma/legacy/database.sql` for reference.
-- MySQL is not guaranteed to be running in the build environment; database-backed pages will be
-  dynamic (no build-time DB access).
+- Database-backed pages are dynamic (no build-time DB access). A missing/invalid `DATABASE_URL`
+  causes the first DB-backed request to throw a clear configuration error.
 - Admin flash messages travel through `?success=`/`?error=` query params instead of PHP sessions;
   `AdminShell` renders them in the same Bootstrap alert style and clears them after display.
 - Product uploads validate extension, MIME and file signature (10 MB cap) and are stored under
   `public/uploads/products/` with `prod_<hex>.<ext>` names; generated DOCX files still live in
   `storage/fc/` and are served through `/api/download/[id]`.
-- Prisma cannot express SQL `COUNT(DISTINCT ...)` inside `groupBy`, so analytics distinct counts
-  are computed in TypeScript from the same rows to keep numbers identical to the PHP reports.
+- MongoDB's Prisma connector has no `groupBy`, so analytics distinct counts and top-download
+  groupings are computed in TypeScript from the same rows to keep numbers identical to the PHP
+  reports.
+- The admin footer still says `Raw PHP · MySQL PDO` to preserve the original visual design.

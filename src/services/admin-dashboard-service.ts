@@ -68,16 +68,21 @@ export async function getDashboardData() {
       take: 5,
       select: { id: true, name: true, brand: true, platform: true, viewsCount: true, price: true },
     }),
-    prisma.download.groupBy({
-      by: ["productId"],
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 5,
-    }),
+    // groupBy is not supported by Prisma's MongoDB connector; aggregate in JS.
+    prisma.download.findMany({ select: { productId: true } }),
   ]);
 
+  const downloadCountMap = new Map<number, number>();
+  for (const row of downloadCounts) {
+    downloadCountMap.set(row.productId, (downloadCountMap.get(row.productId) ?? 0) + 1);
+  }
+  const topDownloads = [...downloadCountMap.entries()]
+    .map(([productId, count]) => ({ productId, count }))
+    .sort((a, b) => b.count - a.count || a.productId - b.productId)
+    .slice(0, 5);
+
   const mostDownloaded = await Promise.all(
-    downloadCounts.map(async (entry) => {
+    topDownloads.map(async (entry) => {
       const product = await prisma.product.findUnique({
         where: { id: entry.productId },
         select: { id: true, name: true, brand: true },
@@ -86,7 +91,7 @@ export async function getDashboardData() {
         id: entry.productId,
         name: product?.name ?? `Product #${entry.productId}`,
         brand: product?.brand ?? "",
-        dlCount: entry._count.id,
+        dlCount: entry.count,
       };
     }),
   );

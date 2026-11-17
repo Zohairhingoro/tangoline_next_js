@@ -184,12 +184,8 @@ export async function getDownloadAnalytics(
     prisma.download.count({
       where: { downloadedAt: { gte: new Date(now.getTime() - 7 * 86_400_000) } },
     }),
-    prisma.download.groupBy({
-      by: ["productId"],
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 8,
-    }),
+    // groupBy is not supported by Prisma's MongoDB connector; aggregate in JS.
+    prisma.download.findMany({ select: { productId: true } }),
     prisma.download.findMany({
       where: {
         downloadedAt: { gte: from, lt: toExclusive },
@@ -221,7 +217,15 @@ export async function getDownloadAnalytics(
     }),
   ]);
 
-  const topIds = groupedTop.map((entry) => entry.productId);
+  const groupedCounts = new Map<number, number>();
+  for (const row of groupedTop) {
+    groupedCounts.set(row.productId, (groupedCounts.get(row.productId) ?? 0) + 1);
+  }
+  const groupedTopEntries = [...groupedCounts.entries()]
+    .map(([productId, count]) => ({ productId, count }))
+    .sort((a, b) => b.count - a.count || a.productId - b.productId)
+    .slice(0, 8);
+  const topIds = groupedTopEntries.map((entry) => entry.productId);
   const topProductsRaw = topIds.length
     ? await prisma.product.findMany({
         where: { id: { in: topIds } },
@@ -229,13 +233,13 @@ export async function getDownloadAnalytics(
       })
     : [];
   const productById = new Map(topProductsRaw.map((product) => [product.id, product]));
-  const topProducts = groupedTop.map((entry) => {
+  const topProducts = groupedTopEntries.map((entry) => {
     const product = productById.get(entry.productId);
     return {
       id: entry.productId,
       name: product?.name ?? `Product #${entry.productId}`,
       brand: product?.brand ?? "",
-      count: entry._count.id,
+      count: entry.count,
     };
   });
 

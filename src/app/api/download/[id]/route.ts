@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth/session";
 import { getCartIdentity, setCartSessionCookie } from "@/lib/cart";
 import { prisma } from "@/lib/db/prisma";
+import { nextId } from "@/lib/db/next-id";
 import { docxExists, generateProductDocx, resolveDocxPath } from "@/lib/docx";
 import { getProductDownloadInfo } from "@/services/product-service";
 
@@ -75,6 +76,7 @@ export async function GET(
 
     await prisma.download.create({
       data: {
+        id: await nextId("downloads"),
         productId: product.id,
         userId: user?.role === "customer" ? user.id : null,
         sessionId: identity.sessionId,

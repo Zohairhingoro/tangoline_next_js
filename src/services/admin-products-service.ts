@@ -1,6 +1,7 @@
 import type { StockStatus } from "@prisma/client";
 import { generateProductDocx, removeProductDocx } from "@/lib/docx";
 import { prisma } from "@/lib/db/prisma";
+import { nextId } from "@/lib/db/next-id";
 import { slugify } from "@/lib/utils";
 
 export type ProductInput = {
@@ -60,6 +61,7 @@ export async function createAdminProduct(
   const product = await prisma.product.create({
     data: {
       ...values,
+      id: await nextId("products"),
       slug,
       image: uploadedImage ?? DEFAULT_IMAGE,
       docxFile: "",

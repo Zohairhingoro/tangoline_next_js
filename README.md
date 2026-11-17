@@ -3,7 +3,7 @@
 A faithful migration of the original raw-PHP Tangoline gaming e-commerce platform to a modern
 Next.js application. This is a **migration, not a redesign**: the original dark/red visual design,
 layout, and behaviour are preserved while the backend moves to Next.js Route Handlers, Prisma,
-and MySQL.
+and **MongoDB Atlas**.
 
 - **Original (reference):** <https://github.com/Zohairhingoro/tangoline>
 - **New application:** <https://github.com/Zohairhingoro/tangoline_next_js>
@@ -17,7 +17,7 @@ and MySQL.
 | Framework | Next.js (App Router, React, TypeScript) |
 | Styling | Tailwind CSS + original `site.css` design tokens (Quicksand font) |
 | Icons | Lucide React |
-| Database | MySQL via Prisma ORM |
+| Database | MongoDB Atlas via Prisma ORM 6.19.3 (native MongoDB connector) |
 | Auth | Secure httpOnly cookie sessions, bcrypt password hashing |
 | Charts | Recharts (parity with original Chart.js dashboards) |
 | Documents | DOCX (Office Open XML) generation with tracked downloads |
@@ -40,13 +40,14 @@ src/
     ui/                 # Shared primitives
   lib/
     auth/               # Session, password, authorization helpers
-    db/                 # Prisma client singleton
+    db/                 # Prisma client singleton and MongoDB ID allocator
   services/             # Business logic
   types/                # Shared TypeScript types
   hooks/                # Client hooks
 prisma/
-  schema.prisma         # Prisma schema (mirrors legacy MySQL schema)
-  legacy/database.sql   # Original PHP schema + seed data (reference)
+  schema.prisma         # Prisma schema for MongoDB (legacy numeric IDs preserved)
+  legacy/database.sql   # Original PHP/MySQL schema + seed data (reference)
+  migrate-sql-to-mongo.mjs # Imports the legacy SQL dump into MongoDB
 public/                 # Original logos, character art, product images
 storage/fc/             # Original + generated DOCX specification files
 ```
@@ -67,18 +68,35 @@ npm install
 cp .env.example .env
 ```
 
-Update `DATABASE_URL` to point at your existing `tangoline_db` MySQL database and set a long,
-random `SESSION_SECRET`.
+Set a MongoDB Atlas connection string that includes the database name:
+
+```bash
+DATABASE_URL="mongodb+srv://user:password@cluster0.abcde.mongodb.net/tangoline_db"
+SESSION_SECRET="<long random string>"
+```
+
+In Atlas, create a database user, allow your current IP in **Network Access**, and use the SRV
+connection string from the **Connect** dialog. Never commit `.env`; only `.env.example` is tracked.
 
 ### 3. Database
 
-The migration is designed to be compatible with the existing MySQL schema. See
-`prisma/legacy/database.sql` for the original schema and seed data. Safe import/migration
-instructions are documented in Phase 2 of `MIGRATION_PROGRESS.md`.
+Regenerate the Prisma client and create the collections/indexes:
 
 ```bash
-npx prisma generate
+npm run db:generate
+npx prisma db push
 ```
+
+Then preview and run the legacy data import:
+
+```bash
+npm run db:migrate-sql:dry
+npm run db:migrate-sql
+```
+
+`db:migrate-sql` upserts by the original integer IDs and seeds the `sequences` collection. Use
+`npm run db:migrate-sql -- --replace` only when you intentionally want to delete existing
+Tangoline rows before importing. See [`docs/DATABASE.md`](./docs/DATABASE.md) for the full guide.
 
 ### 4. Development server
 
@@ -86,7 +104,8 @@ npx prisma generate
 npm run dev
 ```
 
-Open <http://localhost:3000>.
+Open <http://localhost:3000>. If the page returns a 500, the dev log will usually say
+`DATABASE_URL is not set` — create `.env` as above and restart the server.
 
 ### 5. Production build
 
@@ -98,11 +117,13 @@ npm start
 ### Useful scripts
 
 ```bash
-npm run lint          # ESLint
-npm run typecheck     # TypeScript, no emit
-npm run db:validate   # Validate prisma/schema.prisma
-npm run db:generate   # Regenerate Prisma Client
-npm run db:pull       # Introspect the live MySQL schema
+npm run lint                 # ESLint
+npm run typecheck            # TypeScript, no emit
+npm run db:validate          # Validate prisma/schema.prisma
+npm run db:generate          # Regenerate Prisma Client
+npm run db:push              # Create/update MongoDB collections and indexes
+npm run db:migrate-sql:dry   # Parse the legacy SQL dump without connecting
+npm run db:migrate-sql       # Import the legacy SQL dump into MongoDB
 ```
 
 ---
@@ -135,7 +156,7 @@ npm run db:pull       # Introspect the live MySQL schema
 | `/api/profile` | `profile.php` (profile update) |
 | `/api/profile/password` | `profile.php` (password change) |
 
-All storefront routes are server-rendered on demand so the build never needs a live MySQL
+All storefront routes are server-rendered on demand so the build never needs a live database
 connection. The original `site.css` and Bootstrap 5.0.2 are loaded alongside Tailwind to
 preserve the exact dark/red Quicksand design.
 
@@ -182,35 +203,44 @@ Change these before any internet-facing deployment.
 ## Migration Notes
 
 The original application used PHP sessions, a localStorage + MySQL hybrid cart, bcrypt passwords,
-CSRF tokens, and generated `.docx` specification sheets. Each of these behaviours is being
+CSRF tokens, and generated `.docx` specification sheets. Each of these behaviours is
 reimplemented with equivalent Next.js/TypeScript patterns. Detailed status is tracked in
 [`MIGRATION_PROGRESS.md`](./MIGRATION_PROGRESS.md).
 
-Phase 4 added the transactional checkout flow. Order numbers follow the original
-`TNG-<6 uppercase hex><2 digits>` format, and every line price is re-checked against MySQL
-before an order is written. Cart state is mirrored into `cart_items` via an httpOnly cart-session
-cookie, and all mutating API routes enforce same-origin checks and zod validation.
+Order numbers follow the original `TNG-<6 uppercase hex><2 digits>` format, and every line price
+is re-checked against the database before an order is written. Cart state is mirrored into
+`cart_items` via an httpOnly cart-session cookie, and all mutating API routes enforce same-origin
+checks and zod validation.
 
-Phase 5 added the customer system: login, registration, logout, profile editing, password
-changes, and order history. Passwords use bcrypt (legacy `$2y$` hashes are verified by
-normalising the prefix), sessions are signed httpOnly cookies, and guarded pages redirect
-unauthenticated visitors back after login via a sanitised `redirect` parameter. The original
-animated auth backdrop and error wording are preserved.
+Passwords use bcrypt (legacy `$2y$` hashes are verified by normalising the prefix), sessions are
+signed httpOnly cookies, and guarded pages redirect unauthenticated visitors back after login via
+a sanitised `redirect` parameter. The original animated auth backdrop and error wording are
+preserved.
 
-Phase 6 delivered the full admin panel: signed admin sessions with guarded shell routes,
-the KPI dashboard and traffic chart, product/category CRUD with secure image uploads and
-automatic DOCX generation, order status processing, user management and login-activity log,
-visitor/download analytics with Recharts, and the contact-message inbox. Flash messages,
-badge colours, date formats, filters, and original confirmation wording are preserved;
-only the underlying transport changed from PHP form POSTs to JSON/multipart Route Handlers.
+The full admin panel includes signed admin sessions, KPI dashboard and traffic chart,
+product/category CRUD with secure image uploads and automatic DOCX generation, order status
+processing, user management and login-activity log, visitor/download analytics with Recharts,
+and the contact-message inbox. Flash messages, badge colours, date formats, filters, and original
+confirmation wording are preserved; only the underlying transport changed from PHP form POSTs to
+JSON/multipart Route Handlers.
 
-Final testing (Phase 8) added a static review pass over all routes and mutation handlers.
-Invalid admin filter values now return zero rows exactly like the original SQL instead of
-reaching Prisma as invalid enums, and an obsolete order-number helper was removed. All
-verification commands pass: `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
-`npx prisma validate`. Live DB-backed end-to-end testing remains the only outstanding item
-and requires a real `DATABASE_URL`.
+### MongoDB-specific differences
+
+- Prisma 6.19.3 is used because Prisma 7 requires a driver adapter and no official MongoDB
+  adapter exists.
+- Legacy integer IDs are kept as MongoDB `_id` values. A per-collection `sequences` collection
+  replaces MySQL autoincrement via atomic `nextId()` / `nextIds()` helpers.
+- `Decimal` was changed to `Float`, and MySQL-only `@db.*` types were removed.
+- MongoDB's connector does not support `groupBy`; download analytics aggregate the same rows in
+  JavaScript.
+- Checkout/cart writes are sequential rather than one cross-collection transaction. Prices are
+  still re-read from the database, but a mid-write failure can leave partial state.
+- The legacy SQL dump remains in `prisma/legacy/database.sql` for reference and seeded data.
+
+Static verification passes: `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
+`npx prisma validate`. Live DB-backed end-to-end testing requires a real MongoDB Atlas
+`DATABASE_URL`.
 
 ---
 
-*Built for Tangoline Inc. — migrated from Raw PHP · MySQL PDO · Bootstrap 5.*
+*Built for Tangoline Inc. — migrated from Raw PHP · MySQL PDO · Bootstrap 5, now backed by MongoDB Atlas.*

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { isSameOrigin } from "@/lib/auth/csrf";
 import { prisma } from "@/lib/db/prisma";
+import { nextId } from "@/lib/db/next-id";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,7 @@ export async function POST(request: Request) {
   try {
     await prisma.contactMessage.create({
       data: {
+        id: await nextId("contact_messages"),
         name: payload.name,
         email: payload.email,
         subject: payload.subject || "General Inquiry",

@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
 const globalForPrisma = globalThis as unknown as {
   prismaClient?: PrismaClient;
@@ -9,13 +8,16 @@ function createClient(): PrismaClient {
   const url = process.env.DATABASE_URL;
   if (!url) {
     throw new Error(
-      "DATABASE_URL is not set. Copy .env.example to .env and configure your MySQL connection.",
+      "DATABASE_URL is not set. Copy .env.example to .env and configure your MongoDB Atlas connection.",
     );
   }
-  // Prisma 7 uses driver adapters instead of a bundled query engine.
-  // The MariaDB adapter speaks the MySQL protocol and works with MySQL too.
-  const adapter = new PrismaMariaDb(url);
-  return new PrismaClient({ adapter });
+  if (!/^mongodb(\+srv)?:\/\//.test(url)) {
+    throw new Error(
+      "DATABASE_URL must be a mongodb:// or mongodb+srv:// connection string.",
+    );
+  }
+  // MongoDB uses Prisma's built-in connector with DATABASE_URL from the environment.
+  return new PrismaClient();
 }
 
 /**

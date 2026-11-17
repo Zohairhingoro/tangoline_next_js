@@ -2,6 +2,7 @@ import { Prisma, UserStatus } from "@prisma/client";
 import { hashPassword, verifyPassword } from "@/lib/auth/password";
 import { logActivity } from "@/lib/analytics";
 import { prisma } from "@/lib/db/prisma";
+import { nextId } from "@/lib/db/next-id";
 import type { SessionUser } from "@/types";
 
 export type AuthResult = {
@@ -111,6 +112,7 @@ export async function registerCustomer(input: {
   try {
     const user = await prisma.user.create({
       data: {
+        id: await nextId("users"),
         username,
         email,
         password: await hashPassword(input.password),

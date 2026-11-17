@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { nextId, nextIds } from "@/lib/db/next-id";
 import { toCartItem } from "@/lib/utils";
 import { toStoreProduct } from "@/services/product-service";
 import type { CartItem } from "@/types";
@@ -29,7 +30,7 @@ export async function addDbCartItem(
 
   await prisma.cartItem.upsert({
     where: { unique_cart_item: { sessionId, productId } },
-    create: { userId, sessionId, productId, quantity: qty },
+    create: { id: await nextId("cart_items"), userId, sessionId, productId, quantity: qty },
     update: { userId, quantity: { increment: qty } },
   });
   return { ok: true };
@@ -46,7 +47,7 @@ export async function updateDbCartItem(
   }
   await prisma.cartItem.upsert({
     where: { unique_cart_item: { sessionId, productId } },
-    create: { sessionId, productId, quantity: qty },
+    create: { id: await nextId("cart_items"), sessionId, productId, quantity: qty },
     update: { quantity: qty },
   });
 }
@@ -84,21 +85,32 @@ export async function syncDbCart(
   const inStockIds = new Set(
     products.filter((product) => product.stockStatus === "in_stock").map((product) => product.id),
   );
-  const rows = validItems
-    .filter((item) => inStockIds.has(item.productId))
-    .map((item) => ({
-      userId,
-      sessionId,
-      productId: item.productId,
-      quantity: item.quantity,
-    }));
+  // Merge duplicate product lines (MongoDB createMany has no skipDuplicates).
+  const byProduct = new Map<number, { userId: number | null; sessionId: string; productId: number; quantity: number }>();
+  for (const item of validItems) {
+    if (!inStockIds.has(item.productId)) continue;
+    const existing = byProduct.get(item.productId);
+    if (existing) {
+      existing.quantity = Math.min(99, existing.quantity + item.quantity);
+    } else {
+      byProduct.set(item.productId, {
+        userId,
+        sessionId,
+        productId: item.productId,
+        quantity: item.quantity,
+      });
+    }
+  }
+  const rows = [...byProduct.values()];
+  const ids = await nextIds("cart_items", rows.length);
 
-  await prisma.$transaction([
-    prisma.cartItem.deleteMany({ where: { sessionId } }),
-    ...(rows.length
-      ? [prisma.cartItem.createMany({ data: rows, skipDuplicates: true })]
-      : []),
-  ]);
+  // MongoDB (Prisma 6) has no transaction support; run the writes in order.
+  await prisma.cartItem.deleteMany({ where: { sessionId } });
+  if (rows.length) {
+    await prisma.cartItem.createMany({
+      data: rows.map((row, index) => ({ id: ids[index], ...row })),
+    });
+  }
 }
 
 export async function clearDbCartForCheckout(

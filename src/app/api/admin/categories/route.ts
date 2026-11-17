@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { isSameOrigin } from "@/lib/auth/csrf";
 import { getAdminSession } from "@/lib/auth/guards";
 import { prisma } from "@/lib/db/prisma";
+import { nextId } from "@/lib/db/next-id";
 import { slugify } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
 
   try {
     const category = await prisma.category.create({
-      data: { name, slug, description },
+      data: { id: await nextId("categories"), name, slug, description },
     });
     return NextResponse.json({
       success: true,

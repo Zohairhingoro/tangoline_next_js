@@ -1,6 +1,7 @@
 import { randomBytes, randomInt } from "node:crypto";
 import { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
+import { nextId, nextIds } from "@/lib/db/next-id";
 import { formatPrice } from "@/lib/utils";
 import type { CheckoutInput } from "@/types";
 
@@ -80,42 +81,45 @@ export async function createOrder(
 
   const total = orderItems.reduce((sum, item) => sum + item.subtotal, 0);
   const orderNumber = await findUniqueOrderNumber();
+  const orderId = await nextId("orders");
+  const itemIds = await nextIds("order_items", orderItems.length);
 
-  await prisma.$transaction([
-    prisma.order.create({
-      data: {
-        orderNumber,
-        userId,
-        customerName: input.customerName,
-        customerEmail: input.customerEmail,
-        customerPhone: input.customerPhone,
-        shippingAddress: input.shippingAddress,
-        city: input.city,
-        postalCode: input.postalCode,
-        paymentMethod: input.paymentMethod,
-        subtotal: total,
-        shippingFee: 0,
-        totalAmount: total,
-        status: OrderStatus.Pending,
-        notes: input.notes || null,
-        orderItems: {
-          create: orderItems.map((item) => ({
-            productId: item.productId,
-            productName: item.productName,
-            productPrice: item.productPrice,
-            quantity: item.quantity,
-            subtotal: item.subtotal,
-            productImage: item.productImage,
-          })),
-        },
+  // MongoDB (Prisma 6) has no transaction support; run the writes in order.
+  await prisma.order.create({
+    data: {
+      id: orderId,
+      orderNumber,
+      userId,
+      customerName: input.customerName,
+      customerEmail: input.customerEmail,
+      customerPhone: input.customerPhone,
+      shippingAddress: input.shippingAddress,
+      city: input.city,
+      postalCode: input.postalCode,
+      paymentMethod: input.paymentMethod,
+      subtotal: total,
+      shippingFee: 0,
+      totalAmount: total,
+      status: OrderStatus.Pending,
+      notes: input.notes || null,
+      orderItems: {
+        create: orderItems.map((item, index) => ({
+          id: itemIds[index],
+          productId: item.productId,
+          productName: item.productName,
+          productPrice: item.productPrice,
+          quantity: item.quantity,
+          subtotal: item.subtotal,
+          productImage: item.productImage,
+        })),
       },
-    }),
-    prisma.cartItem.deleteMany({
-      where: {
-        OR: [{ sessionId }, { userId }],
-      },
-    }),
-  ]);
+    },
+  });
+  await prisma.cartItem.deleteMany({
+    where: {
+      OR: [{ sessionId }, { userId }],
+    },
+  });
 
   return {
     orderNumber,
