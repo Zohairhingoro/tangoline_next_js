@@ -10,7 +10,8 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 ## Current Status
 
 - **Current phase:** Phase 4 — Storefront Functionality ✅ complete → starting Phase 5
-- **Latest commit:** `f1a8d31` — `feat: implement storefront cart, checkout and contact flows`
+- **Latest commit:** see `git log` for the `feat: implement storefront cart, checkout and
+  contact flows` commit (Phase 4 implementation)
 - **Testing status:** `npm run lint`, `npx tsc --noEmit`, `npm run build`, and
   `npx prisma validate` all pass (Prisma config requires a `DATABASE_URL` to be present,
   but no live MySQL connection is needed for validation/build). DB-backed flows will be
@@ -71,7 +72,7 @@ Tracking the migration of the raw-PHP Tangoline e-commerce application to Next.j
 - [x] `/api/contact` + contact page storing validated messages in `contact_messages`
 - [x] DOCX download tracking in `downloads` with on-demand generation and `docx_file` update
 - [x] `lint`, `tsc`, `build`, `prisma validate` all pass; every new route is dynamic
-- [x] Commit and push (`f1a8d31`)
+- [x] Commit and push (Phase 4 implementation commit in `git log`)
 
 ## Phase 5 — Customer System ⬜
 
